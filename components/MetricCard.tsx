@@ -1,15 +1,17 @@
+
 import React from 'react';
 import { VitalSign } from '../types';
-import { ArrowUp, ArrowDown, Minus, Info } from 'lucide-react';
+import { ArrowUp, ArrowDown, Minus, Info, Watch } from 'lucide-react';
 import { AreaChart, Area, ResponsiveContainer } from 'recharts';
 
 interface MetricCardProps {
   vital: VitalSign;
   onClick: () => void;
   isCompact?: boolean;
+  isDeviceMetric?: boolean;
 }
 
-const MetricCard: React.FC<MetricCardProps> = ({ vital, onClick, isCompact = false }) => {
+const MetricCard: React.FC<MetricCardProps> = ({ vital, onClick, isCompact = false, isDeviceMetric = false }) => {
   const isCritical = vital.status === 'critical';
   const isWarning = vital.status === 'warning';
   
@@ -43,8 +45,12 @@ const MetricCard: React.FC<MetricCardProps> = ({ vital, onClick, isCompact = fal
         <div className="flex flex-col">
           <span className="text-slate-400 text-xs uppercase tracking-wider font-semibold flex items-center gap-1">
             {vital.name}
-            {/* HFE: Information button for training/help */}
-            <Info size={12} className="opacity-50" />
+            {/* HFE: Watch icon for device data visibility */}
+            {isDeviceMetric ? (
+               <Watch size={10} className="text-indigo-400" />
+            ) : (
+               <Info size={12} className="opacity-50" />
+            )}
           </span>
           <div className="flex items-baseline gap-1 mt-1">
             <span className={`text-2xl font-bold ${isCritical ? 'text-red-400' : 'text-white'}`}>

@@ -1,14 +1,15 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { HealthData, ForecastPoint, SimulationAction, Appointment } from './types';
+import { HealthData, ForecastPoint, SimulationAction, Appointment, DeviceStatus } from './types';
 import BioAvatar from './components/BioAvatar';
 import Assistant from './components/Assistant';
 import ForecastWidget from './components/ForecastWidget';
 import ActionSimulator from './components/ActionSimulator';
 import MetricCard from './components/MetricCard';
 import AppointmentWidget from './components/AppointmentWidget';
+import EnvironmentCard from './components/EnvironmentCard';
 import { generateHealthInsight, generateForecast } from './services/gemini';
-import { Activity, Bell, User, MessageSquareText, Sparkles, Menu, AlertTriangle } from 'lucide-react';
+import { Bell, MessageSquareText, Watch, RefreshCw, Activity, Sparkles, User } from 'lucide-react';
 
 // --- MOCK DATA GENERATOR ---
 const generateMockData = (): HealthData => {
@@ -73,20 +74,21 @@ function App() {
   const [isRiskMode, setIsRiskMode] = useState(false);
   
   const [forecast, setForecast] = useState<ForecastPoint[]>([]);
-  const [insight, setInsight] = useState<string>("Initializing Aura...");
+  const [insight, setInsight] = useState<string>("Analyzing your daily bio-rhythms...");
   const [isAssistantOpen, setAssistantOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [wellnessScore, setWellnessScore] = useState(85);
+  const [activeTab, setActiveTab] = useState<'monitor' | 'goals' | 'profile'>('monitor');
 
-  const getGreeting = () => {
-    const hour = new Date().getHours();
-    if (hour < 12) return "Good Morning";
-    if (hour < 18) return "Good Afternoon";
-    return "Good Evening";
-  };
+  const [deviceStatus, setDeviceStatus] = useState<DeviceStatus>({
+    isConnected: true,
+    batteryLevel: 82,
+    lastSync: new Date(),
+    deviceName: 'Aura Watch S7',
+    isSyncing: false
+  });
 
   const calculateWellnessScore = (data: HealthData) => {
-    // Simple algorithm to calculate a 0-100 score based on vitals
     let score = 100;
     if (data.stressLevel.value > 50) score -= 10;
     if (data.stressLevel.value > 80) score -= 20;
@@ -98,8 +100,11 @@ function App() {
 
   const refreshData = useCallback(async () => {
     setLoading(true);
-    // Simulate API latency
-    await new Promise(r => setTimeout(r, 600));
+    setDeviceStatus(prev => ({ ...prev, isSyncing: true }));
+    
+    // Simulate API latency & Sync delay
+    await new Promise(r => setTimeout(r, 1200));
+    
     const newData = generateMockData();
     
     // Logic for mock status
@@ -108,6 +113,12 @@ function App() {
 
     setHealthData(newData);
     setWellnessScore(calculateWellnessScore(newData));
+    setDeviceStatus(prev => ({ 
+      ...prev, 
+      isSyncing: false, 
+      lastSync: new Date(),
+      batteryLevel: Math.max(10, prev.batteryLevel - 1) 
+    }));
     
     // Parallel fetch AI
     generateHealthInsight(newData).then(setInsight);
@@ -116,17 +127,14 @@ function App() {
     setLoading(false);
   }, []);
 
-  // Initial load
   useEffect(() => {
     refreshData();
   }, [refreshData]);
 
-  // Handle Simulation (The "Out of the box" feature)
   const handleSimulation = (action: SimulationAction, riskMode: boolean) => {
     setActiveSimulationId(action.id);
     setIsRiskMode(riskMode);
     
-    // Create a deep merge of the current data with the effect
     const mergedData = JSON.parse(JSON.stringify(healthData));
     
     Object.keys(action.effect).forEach((key) => {
@@ -141,7 +149,6 @@ function App() {
     });
     
     setSimulatedData(mergedData);
-    // Update score for simulation view
     setWellnessScore(calculateWellnessScore(mergedData));
   };
 
@@ -152,49 +159,48 @@ function App() {
     setWellnessScore(calculateWellnessScore(healthData));
   };
 
-  // Determine which data to show (Real vs Simulated)
   const displayData = simulatedData || healthData;
+  const isEmergency = isRiskMode || displayData.heartRate.value > 120 || displayData.stressLevel.value > 80;
 
   return (
-    <div className="min-h-screen bg-[#0f172a] text-slate-100 flex justify-center overflow-hidden font-sans selection:bg-indigo-500/30">
+    <div className="h-screen max-h-screen bg-[#0f172a] text-slate-100 flex justify-center font-sans overflow-hidden selection:bg-indigo-500/30">
       
-      {/* App Container */}
-      <div className="w-full max-w-md h-full min-h-screen bg-slate-950 relative flex flex-col shadow-2xl overflow-y-auto pb-24 border-x border-slate-900">
+      {/* App Container - Fixed Height */}
+      <div className="w-full max-w-md h-full bg-slate-950 relative flex flex-col shadow-2xl border-x border-slate-900">
         
-        {/* Header */}
-        <header className="px-6 py-6 flex justify-between items-start z-10 sticky top-0 bg-gradient-to-b from-slate-900 via-slate-900/90 to-transparent pb-8">
-           <div className="flex flex-col">
-             <span className="text-slate-400 text-sm font-medium">{getGreeting()}, Alex</span>
-             <h1 className="text-2xl font-bold text-white leading-tight tracking-tight">Your Health Aura</h1>
-             
-             {/* Mode Indicator */}
-             <div className="flex items-center gap-1.5 mt-2">
-                 <span className={`w-2 h-2 rounded-full ${simulatedData ? (isRiskMode ? 'bg-red-500 animate-ping' : 'bg-indigo-500 animate-pulse') : 'bg-emerald-500'} `}></span>
-                 <p className={`text-[10px] font-bold uppercase tracking-widest ${isRiskMode ? 'text-red-400' : 'text-slate-400'}`}>
-                   {simulatedData ? (isRiskMode ? 'Risk Analysis' : 'Preview Mode') : 'Live Monitoring'}
-                 </p>
-               </div>
-           </div>
-           
-           <button onClick={refreshData} disabled={loading} className="p-3 bg-slate-800/50 backdrop-blur-md rounded-2xl text-slate-400 hover:text-white border border-white/5 transition active:scale-95">
-             <Bell size={20} />
-             {/* Notification Dot */}
-             <span className="absolute top-3 right-3 w-2 h-2 bg-red-500 rounded-full border-2 border-slate-900"></span>
-           </button>
+        {/* --- HEADER --- */}
+        <header className="px-6 pt-6 pb-2 z-20 bg-gradient-to-b from-slate-950 via-slate-950/90 to-transparent flex-shrink-0">
+          <div className="flex justify-between items-start">
+            <div className="flex flex-col">
+              {/* Status Bar */}
+              <span className="text-[10px] text-slate-500 font-bold tracking-widest uppercase flex items-center gap-1.5 mb-1">
+                 <Watch size={10} className={deviceStatus.isConnected ? "text-indigo-400" : "text-slate-600"} />
+                 {deviceStatus.isSyncing ? "SYNCING..." : "CONNECTED"} 
+                 <span className="text-slate-700">•</span> 
+                 {deviceStatus.batteryLevel}%
+              </span>
+              
+              {/* Greeting */}
+              <h1 className="text-xl font-bold text-white leading-tight">Good Morning, Alex</h1>
+              
+              {/* AI Insight (Moved here for cleanliness) */}
+              <div className="mt-2 flex items-start gap-2 max-w-[280px]">
+                <div className={`w-1 h-1 rounded-full mt-1.5 shrink-0 ${isEmergency ? 'bg-red-500 animate-ping' : 'bg-indigo-400'}`} />
+                <p className={`text-xs font-medium leading-relaxed transition-colors duration-500 ${isEmergency ? 'text-red-300' : 'text-indigo-200'}`}>
+                  {isRiskMode ? "Simulating adverse health event. Vitals destabilizing." : insight}
+                </p>
+              </div>
+            </div>
+
+            <button onClick={refreshData} disabled={loading} className="p-2.5 bg-slate-800/50 rounded-full border border-white/5 text-slate-400 hover:text-white hover:bg-slate-800 transition active:scale-95">
+               {deviceStatus.isSyncing ? <RefreshCw size={20} className="animate-spin text-indigo-400" /> : <Bell size={20} />}
+            </button>
+          </div>
         </header>
 
-        {/* --- HERO SECTION: INTERACTIVE AVATAR --- */}
-        <div className="relative z-0 -mt-4 px-4 min-h-[400px]">
-           {/* Insight Pill */}
-           <div className="absolute top-0 left-0 right-0 flex justify-center z-20 pointer-events-none">
-             <div className={`backdrop-blur-xl px-5 py-3 rounded-2xl border shadow-2xl max-w-[90%] text-center transition-all duration-500 ${simulatedData ? (isRiskMode ? 'bg-red-900/80 border-red-500/50 translate-y-2' : 'bg-indigo-900/80 border-indigo-500/50 translate-y-2') : 'bg-slate-800/60 border-white/10'}`}>
-               <p className={`text-xs font-medium flex items-center justify-center gap-2 leading-relaxed ${simulatedData ? (isRiskMode ? 'text-red-100' : 'text-indigo-100') : 'text-slate-200'}`}>
-                  {isRiskMode ? <AlertTriangle size={14} className="text-red-400 shrink-0" /> : <Sparkles size={14} className={simulatedData ? "text-indigo-400 shrink-0" : "text-amber-400 shrink-0"} />}
-                  {simulatedData ? "Visualizing effect on your body..." : insight}
-               </p>
-             </div>
-           </div>
-
+        {/* --- HERO SECTION: BIO AVATAR (Top Fixed) --- */}
+        <div className="relative h-[38%] flex-shrink-0 flex flex-col items-center justify-center z-10 transition-all duration-500">
+           {/* Visual Avatar */}
            <BioAvatar 
              data={healthData} 
              simulatedData={simulatedData}
@@ -203,96 +209,97 @@ function App() {
            />
         </div>
 
-        {/* --- MAIN DASHBOARD CONTENT --- */}
-        <main className="px-5 space-y-8 relative z-10 -mt-6 bg-gradient-to-t from-slate-950 via-slate-950 to-transparent pt-10">
-           
-           {/* 1. Simulator Dock (Unique Feature) */}
-           <section className={`backdrop-blur-xl p-5 rounded-[2rem] border shadow-2xl ring-1 transition-colors duration-500 ${isRiskMode ? 'bg-red-950/40 border-red-500/20 ring-red-500/10' : 'bg-slate-900/60 border-white/5 ring-white/5'}`}>
-             <ActionSimulator 
-               onSimulate={handleSimulation}
-               onClear={clearSimulation}
-               activeActionId={activeSimulationId}
-             />
-           </section>
+        {/* --- SCROLLABLE CONTENT (Bottom) --- */}
+        <div className="flex-1 bg-slate-900/80 backdrop-blur-xl rounded-t-[2.5rem] border-t border-white/5 shadow-[0_-10px_40px_rgba(0,0,0,0.5)] flex flex-col z-20 overflow-hidden relative">
+          
+          {/* Scroll Fade Overlay */}
+          <div className="absolute top-0 left-0 right-0 h-6 bg-gradient-to-b from-slate-900/80 to-transparent z-30 pointer-events-none" />
 
-           {/* 2. Live Vitals Grid (Core Dashboard Feature) */}
-           <section>
-              <div className="flex justify-between items-end mb-4 px-2">
-                <h3 className="text-sm font-bold text-slate-400 uppercase tracking-wider">
-                  Vital Statistics
-                </h3>
-                {simulatedData && <span className={`text-[10px] font-bold px-2 py-1 rounded-lg border ${isRiskMode ? 'text-red-300 bg-red-500/20 border-red-500/30' : 'text-indigo-300 bg-indigo-500/20 border-indigo-500/30'}`}>PREVIEW VALUES</span>}
+          {/* Main Content Area - with padding at bottom for nav bar */}
+          <div className="flex-1 overflow-y-auto p-6 space-y-6 no-scrollbar pb-28">
+            
+            {/* 1. Action Simulator (Effect Preview) */}
+            <div className="animate-[fadeIn_0.3s]">
+               <ActionSimulator 
+                 onSimulate={handleSimulation}
+                 onClear={clearSimulation}
+                 activeActionId={activeSimulationId}
+               />
+            </div>
+
+            {/* 2. Live Vitals & IoT Grid (Monitor + Control) */}
+            <div className="animate-[fadeIn_0.4s]">
+              <div className="flex justify-between items-end mb-3 ml-1 mr-1">
+                <h2 className="text-xs font-bold text-slate-500 uppercase tracking-widest">Live Vitals & Environment</h2>
+                <span className="text-[10px] text-slate-600 font-medium">Updated Now</span>
               </div>
               
               <div className="grid grid-cols-2 gap-3">
-                <MetricCard 
-                  vital={displayData.heartRate} 
-                  onClick={() => {}} 
-                  isCompact 
-                />
-                <MetricCard 
-                  vital={displayData.bloodPressureSys} 
-                  onClick={() => {}} 
-                  isCompact 
-                />
-                 <MetricCard 
-                  vital={displayData.oxygenLevel} 
-                  onClick={() => {}} 
-                  isCompact 
-                />
-                <MetricCard 
-                  vital={displayData.stressLevel} 
-                  onClick={() => {}} 
-                  isCompact 
-                />
+                <MetricCard vital={displayData.heartRate} onClick={() => {}} isCompact isDeviceMetric />
+                <MetricCard vital={displayData.oxygenLevel} onClick={() => {}} isCompact isDeviceMetric />
+                <MetricCard vital={displayData.stressLevel} onClick={() => {}} isCompact />
+                <MetricCard vital={displayData.hydration} onClick={() => {}} isCompact />
+                {/* Environment Card (Control) */}
+                <EnvironmentCard />
+                {/* Keep one BP card or swap for other data */}
+                <MetricCard vital={displayData.bloodPressureSys} onClick={() => {}} isCompact />
               </div>
-           </section>
-           
-           {/* 3. Care Connect (Appointments) */}
-           <section>
-              <AppointmentWidget 
-                appointments={mockAppointments}
-                isRiskMode={isRiskMode}
-              />
-           </section>
+            </div>
+            
+            {/* 3. Care Connect (Appointments & SOS) */}
+            <div className="animate-[fadeIn_0.5s]">
+                <AppointmentWidget appointments={mockAppointments} isRiskMode={isRiskMode} />
+            </div>
 
-           {/* 4. Forecast Widget (Predictive Feature) */}
-           <section>
-             <h3 className="text-sm font-bold text-slate-400 mb-3 uppercase tracking-wider px-2">Forecast</h3>
-             <ForecastWidget forecast={forecast} loading={loading} />
-           </section>
+            {/* 4. Forecast (Prediction) */}
+            <div className="animate-[fadeIn_0.6s]">
+               <ForecastWidget forecast={forecast} loading={loading} />
+            </div>
 
-        </main>
+          </div>
+        </div>
 
-        <div className="h-12" /> {/* Spacer */}
-
-        {/* Floating AI Fab */}
-        <div className="fixed bottom-24 right-6 z-40">
+        {/* Floating AI Assistant Button (Adjusted position) */}
+        <div className="absolute bottom-24 right-6 z-50">
            <button 
              onClick={() => setAssistantOpen(true)}
-             className="group w-14 h-14 bg-indigo-600 rounded-full shadow-lg shadow-indigo-600/40 flex items-center justify-center text-white hover:scale-110 hover:-rotate-3 transition-all duration-300 border border-white/20 relative overflow-hidden"
+             className="w-14 h-14 bg-indigo-600 rounded-full shadow-lg shadow-indigo-600/40 flex items-center justify-center text-white hover:scale-110 hover:-rotate-3 transition-all duration-300 border border-white/20 group"
            >
-             <div className="absolute inset-0 bg-gradient-to-tr from-indigo-600 to-purple-500 opacity-100 group-hover:opacity-90 transition-opacity"></div>
-             <MessageSquareText size={24} fill="currentColor" className="text-white relative z-10" />
+             <MessageSquareText size={24} fill="currentColor" className="text-white group-hover:animate-pulse" />
            </button>
         </div>
 
-        {/* Bottom Navigation */}
-        <nav className="fixed bottom-0 w-full max-w-md bg-slate-950/80 backdrop-blur-xl border-t border-white/5 px-8 py-5 z-50 flex justify-between items-center pb-8">
-            <button className="flex flex-col items-center gap-1.5 text-indigo-400 relative">
-               <Activity size={24} />
-               <span className="text-[10px] font-bold tracking-wide">Monitor</span>
-               <span className="absolute -bottom-3 w-1 h-1 bg-indigo-400 rounded-full"></span>
+        {/* Bottom Navigation Bar */}
+        <div className="absolute bottom-0 left-0 right-0 bg-[#0f172a] border-t border-slate-800 z-40 px-6 py-4 pb-6">
+          <div className="flex justify-around items-center">
+            <button 
+              onClick={() => setActiveTab('monitor')}
+              className={`flex flex-col items-center gap-1.5 transition-all ${activeTab === 'monitor' ? 'text-indigo-400' : 'text-slate-500 hover:text-slate-300'}`}
+            >
+              <Activity size={24} strokeWidth={activeTab === 'monitor' ? 2.5 : 2} />
+              <span className={`text-[10px] font-bold ${activeTab === 'monitor' ? 'opacity-100' : 'opacity-0 h-0 overflow-hidden'}`}>Monitor</span>
+              {activeTab === 'monitor' && <div className="w-1 h-1 rounded-full bg-indigo-400 mt-0.5" />}
             </button>
-            <button className="flex flex-col items-center gap-1.5 text-slate-600 hover:text-slate-300 transition group">
-               <Sparkles size={24} className="group-hover:text-amber-300 transition-colors" />
-               <span className="text-[10px] font-medium tracking-wide">Goals</span>
+            
+            <button 
+              onClick={() => setActiveTab('goals')}
+              className={`flex flex-col items-center gap-1.5 transition-all ${activeTab === 'goals' ? 'text-indigo-400' : 'text-slate-500 hover:text-slate-300'}`}
+            >
+              <Sparkles size={24} strokeWidth={activeTab === 'goals' ? 2.5 : 2} />
+              <span className={`text-[10px] font-bold ${activeTab === 'goals' ? 'opacity-100' : 'opacity-0 h-0 overflow-hidden'}`}>Goals</span>
+              {activeTab === 'goals' && <div className="w-1 h-1 rounded-full bg-indigo-400 mt-0.5" />}
             </button>
-            <button className="flex flex-col items-center gap-1.5 text-slate-600 hover:text-slate-300 transition">
-               <User size={24} />
-               <span className="text-[10px] font-medium tracking-wide">Profile</span>
+            
+            <button 
+              onClick={() => setActiveTab('profile')}
+              className={`flex flex-col items-center gap-1.5 transition-all ${activeTab === 'profile' ? 'text-indigo-400' : 'text-slate-500 hover:text-slate-300'}`}
+            >
+              <User size={24} strokeWidth={activeTab === 'profile' ? 2.5 : 2} />
+              <span className={`text-[10px] font-bold ${activeTab === 'profile' ? 'opacity-100' : 'opacity-0 h-0 overflow-hidden'}`}>Profile</span>
+              {activeTab === 'profile' && <div className="w-1 h-1 rounded-full bg-indigo-400 mt-0.5" />}
             </button>
-        </nav>
+          </div>
+        </div>
 
         {/* AI Assistant Modal */}
         <Assistant 

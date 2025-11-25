@@ -2,6 +2,7 @@
 import React from 'react';
 import { HealthData } from '../types';
 import { motion, AnimatePresence } from 'framer-motion';
+import { Flame } from 'lucide-react';
 
 interface BioAvatarProps {
   data: HealthData;
@@ -48,20 +49,44 @@ const BioAvatar: React.FC<BioAvatarProps> = ({ data, simulatedData, isRiskMode =
           backgroundColor: auraColor
         }}
         transition={{ duration: isRiskMode ? 0.8 : 4, repeat: Infinity }}
-        className="absolute w-72 h-72 rounded-full blur-[60px] pointer-events-none"
+        className="absolute w-64 h-64 rounded-full blur-[60px] pointer-events-none"
       />
 
-      {/* Wellness Score Central Display (HFE: Chunking info into one number) */}
+      {/* Wellness Score Central Display */}
       {!isSimulating && (
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-0 opacity-10">
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-0 opacity-10 flex flex-col items-center">
           <span className="text-[140px] font-bold text-white tracking-tighter">{wellnessScore}</span>
         </div>
       )}
 
+      {/* Floating Metric Card - Stress (Right Side) */}
+      <motion.div 
+        initial={{ opacity: 0, x: 20 }}
+        animate={{ opacity: 1, x: 0 }}
+        className="absolute top-1/3 right-4 sm:right-10 z-20"
+      >
+        <div className="bg-slate-800/60 backdrop-blur-md border border-white/10 rounded-2xl px-4 py-3 shadow-xl flex flex-col items-center">
+          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-0.5">Stress</span>
+          <span className="text-2xl font-bold text-white leading-none">{displayData.stressLevel.value}</span>
+        </div>
+      </motion.div>
+
+      {/* Floating Metric Card - Water (Left Side) */}
+      <motion.div 
+        initial={{ opacity: 0, x: -20 }}
+        animate={{ opacity: 1, x: 0 }}
+        className="absolute bottom-1/3 left-4 sm:left-10 z-20"
+      >
+        <div className="bg-slate-800/60 backdrop-blur-md border border-white/10 rounded-2xl px-4 py-3 shadow-xl flex flex-col items-center">
+          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-0.5">Water</span>
+          <span className="text-2xl font-bold text-blue-400 leading-none">{displayData.hydration.value}%</span>
+        </div>
+      </motion.div>
+
       {/* Main Body SVG */}
       <svg 
         viewBox="0 0 200 400" 
-        className={`h-[380px] w-auto drop-shadow-2xl transition-all duration-500 z-10 ${isSimulating ? 'scale-105' : 'scale-100'}`}
+        className={`h-[360px] w-auto drop-shadow-2xl transition-all duration-500 z-10 ${isSimulating ? 'scale-105' : 'scale-100'}`}
         fill="none" 
         xmlns="http://www.w3.org/2000/svg"
       >
@@ -126,11 +151,13 @@ const BioAvatar: React.FC<BioAvatarProps> = ({ data, simulatedData, isRiskMode =
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0 }}
-            className={`absolute bottom-20 text-white px-4 py-2 rounded-full backdrop-blur-md shadow-xl border z-20 ${
+            className={`absolute bottom-20 text-white px-5 py-2 rounded-full backdrop-blur-md shadow-xl border z-20 ${
               isRiskMode ? 'bg-red-600/90 border-red-400' : 'bg-indigo-600/90 border-indigo-400'
             }`}
           >
-            <p className="text-sm font-bold">{isRiskMode ? 'Visualizing Danger...' : 'Previewing Benefit...'}</p>
+            <p className="text-sm font-bold tracking-wide shadow-black drop-shadow-md">
+              {isRiskMode ? '⚠ VISUALIZING DANGER' : '✨ PREVIEWING BENEFIT'}
+            </p>
           </motion.div>
         )}
       </AnimatePresence>
@@ -138,17 +165,11 @@ const BioAvatar: React.FC<BioAvatarProps> = ({ data, simulatedData, isRiskMode =
       {/* Context Labels - Only show criticals or in simulation */}
       {!isSimulating && (
         <>
-          <div className="absolute top-12 right-2 glass-panel px-3 py-2 rounded-2xl border border-white/10 flex flex-col items-center min-w-[70px]">
-            <span className="text-[10px] uppercase text-slate-400 tracking-wider font-bold">Stress</span>
-            <div className="text-lg font-bold text-white leading-none mt-1">{data.stressLevel.value}</div>
-          </div>
-          <div className="absolute top-40 left-0 glass-panel px-3 py-2 rounded-2xl border border-white/10 flex flex-col items-center min-w-[70px]">
-            <span className="text-[10px] uppercase text-slate-400 tracking-wider font-bold">Water</span>
-            <div className="text-lg font-bold text-blue-400 leading-none mt-1">{data.hydration.value}%</div>
-          </div>
-          
-          <div className="absolute bottom-10 bg-slate-900/50 backdrop-blur px-4 py-1 rounded-full border border-white/5">
-             <span className="text-[10px] text-slate-400 font-medium tracking-widest uppercase">Body Harmony: <span className="text-white font-bold text-sm ml-1">{wellnessScore}</span></span>
+          <div className="absolute bottom-6 bg-slate-900/60 backdrop-blur px-5 py-1.5 rounded-full border border-white/10 flex items-center gap-2">
+             <span className="text-[10px] text-slate-400 font-bold tracking-widest uppercase">Harmony Score</span>
+             <div className="w-px h-3 bg-white/10" />
+             <span className="text-white font-bold text-base leading-none">{wellnessScore}</span>
+             {wellnessScore > 80 && <Flame size={12} className="text-orange-400 fill-orange-400" />}
           </div>
         </>
       )}

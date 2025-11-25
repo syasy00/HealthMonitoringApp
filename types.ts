@@ -21,6 +21,14 @@ export interface HealthData {
   energyLevel: number; // New metric for "Body Battery"
 }
 
+export interface DeviceStatus {
+  isConnected: boolean;
+  batteryLevel: number;
+  lastSync: Date;
+  deviceName: string;
+  isSyncing: boolean;
+}
+
 export interface ForecastPoint {
   time: string;
   energy: number;
@@ -44,10 +52,18 @@ export interface Appointment {
   type: 'Video' | 'In-Person';
 }
 
+export interface SmartHomeState {
+  temperature: number;
+  isDoorLocked: boolean;
+  lightsIntensity: number;
+  isPillDispensed: boolean;
+  airQuality: 'Good' | 'Fair' | 'Poor';
+}
+
 export enum AppView {
-  DASHBOARD = 'DASHBOARD',
-  ASSISTANT = 'ASSISTANT',
-  SIMULATION = 'SIMULATION'
+  MONITOR = 'MONITOR',
+  CONTROL = 'CONTROL',
+  PREDICT = 'PREDICT'
 }
 
 export interface ChatMessage {

@@ -15,17 +15,16 @@ export const generateHealthInsight = async (data: HealthData): Promise<string> =
   try {
     const ai = getAiClient();
     const prompt = `
-      Act as a compassionate medical companion (Aura).
-      Analyze these vitals for an elderly user:
+      Act as a proactive health coach (Aura).
+      User Vitals:
       - HR: ${data.heartRate.value}
-      - BP: ${data.bloodPressureSys.value}/${data.bloodPressureDia.value}
-      - SpO2: ${data.oxygenLevel.value}
       - Stress: ${data.stressLevel.value}
       - Hydration: ${data.hydration.value}
 
-      Provide a 1-sentence observation about their current state (e.g. "Your heart rate is slightly elevated," or "You are perfectly balanced.").
-      Then provide 1 specific suggestion.
-      Keep it under 30 words total.
+      Write a very short, punchy daily briefing (max 15 words).
+      If stats are good: Be motivational (e.g. "Great rhythm today, Alex! Keep hydrating.").
+      If stats are bad: Be a gentle nudge (e.g. "Energy looks low. Try a glass of water.").
+      Do not be clinical. Be a companion.
     `;
 
     const response = await ai.models.generateContent({
@@ -33,7 +32,7 @@ export const generateHealthInsight = async (data: HealthData): Promise<string> =
       contents: prompt,
     });
 
-    return response.text || "Systems normal. Monitoring active.";
+    return response.text || "Your body rhythm is stable.";
   } catch (error) {
     console.error("Gemini Insight Error:", error);
     return "Monitoring active. Connection to AI limited.";
