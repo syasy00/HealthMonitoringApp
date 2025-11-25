@@ -1,0 +1,7 @@
+{
+  "name": "Copy of Aura Health Companion",
+  "description": "An intuitive, bio-responsive health monitoring interface designed with Human Factors Engineering principles. Features a visual bio-avatar and AI-powered health insights for varying tech-literacy levels.",
+  "requestFramePermissions": [
+    "microphone"
+  ]
+}
