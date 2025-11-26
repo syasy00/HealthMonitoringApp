@@ -28,9 +28,28 @@ const BioAvatar: React.FC<BioAvatarProps> = ({ data, simulatedData, isRiskMode =
   const heartColor = getStatusColor(displayData.heartRate.status);
   const lungsColor = getStatusColor(displayData.oxygenLevel.status);
   
-  // Hydration visual: Blue if good, Yellow/Dry if bad
-  const hydrationColor = displayData.hydration.value > 60 ? '#3b82f6' : '#d97706';
-  const hydrationOpacity = displayData.hydration.value / 150; // More opaque = more water
+  // Hydration visual logic
+  const hydrationVal = displayData.hydration.value;
+  const hydrationColor = hydrationVal > 60 ? '#3b82f6' : '#d97706';
+  
+  // Wave animation variants for hydration
+  const waveVariants = {
+    animate: {
+      d: [
+        "M85 200 Q100 210 115 200 Q110 230 100 225 Q90 230 85 200Z",
+        "M85 195 Q100 185 115 195 Q110 230 100 225 Q90 230 85 195Z",
+        "M85 200 Q100 210 115 200 Q110 230 100 225 Q90 230 85 200Z"
+      ],
+      transition: {
+        duration: 3,
+        repeat: Infinity,
+        ease: "easeInOut"
+      }
+    },
+    // Height changes based on value
+    high: { scaleY: 1.2, translateY: -10 },
+    low: { scaleY: 0.7, translateY: 10 }
+  };
 
   const auraColor = isRiskMode 
     ? '#ef4444' // Red for risk
@@ -54,7 +73,7 @@ const BioAvatar: React.FC<BioAvatarProps> = ({ data, simulatedData, isRiskMode =
 
       {/* Wellness Score Central Display */}
       {!isSimulating && (
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-0 opacity-10 flex flex-col items-center">
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-0 opacity-10 flex flex-col items-center pointer-events-none">
           <span className="text-[140px] font-bold text-white tracking-tighter">{wellnessScore}</span>
         </div>
       )}
@@ -79,7 +98,9 @@ const BioAvatar: React.FC<BioAvatarProps> = ({ data, simulatedData, isRiskMode =
       >
         <div className="bg-slate-800/60 backdrop-blur-md border border-white/10 rounded-2xl px-4 py-3 shadow-xl flex flex-col items-center">
           <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-0.5">Water</span>
-          <span className="text-2xl font-bold text-blue-400 leading-none">{displayData.hydration.value}%</span>
+          <span className={`text-2xl font-bold leading-none ${hydrationVal < 40 ? 'text-amber-400' : 'text-blue-400'}`}>
+            {displayData.hydration.value}%
+          </span>
         </div>
       </motion.div>
 
@@ -135,12 +156,13 @@ const BioAvatar: React.FC<BioAvatarProps> = ({ data, simulatedData, isRiskMode =
           filter="url(#glow)"
         />
 
-        {/* Hydration / Stomach Area */}
+        {/* Hydration / Stomach Area - Dynamic Wave */}
         <motion.path
           d="M85 180 Q100 200 115 180 Q110 230 100 225 Q90 230 85 180Z"
           fill={hydrationColor}
-          fillOpacity={hydrationOpacity}
-          className="transition-colors duration-500"
+          fillOpacity={0.8}
+          animate={["animate", hydrationVal > 70 ? "high" : "low"]}
+          variants={waveVariants}
         />
       </svg>
       

@@ -9,7 +9,7 @@ import MetricCard from './components/MetricCard';
 import AppointmentWidget from './components/AppointmentWidget';
 import EnvironmentCard from './components/EnvironmentCard';
 import { generateHealthInsight, generateForecast } from './services/gemini';
-import { Bell, MessageSquareText, Watch, RefreshCw, Activity, Sparkles, User } from 'lucide-react';
+import { Bell, MessageSquareText, Watch, RefreshCw, Activity, Sparkles, User, Info, ArrowRight } from 'lucide-react';
 
 // --- MOCK DATA GENERATOR ---
 const generateMockData = (): HealthData => {
@@ -79,6 +79,7 @@ function App() {
   const [loading, setLoading] = useState(false);
   const [wellnessScore, setWellnessScore] = useState(85);
   const [activeTab, setActiveTab] = useState<'monitor' | 'goals' | 'profile'>('monitor');
+  const [showOnboarding, setShowOnboarding] = useState(true);
 
   const [deviceStatus, setDeviceStatus] = useState<DeviceStatus>({
     isConnected: true,
@@ -165,6 +166,65 @@ function App() {
   return (
     <div className="h-screen max-h-screen bg-[#0f172a] text-slate-100 flex justify-center font-sans overflow-hidden selection:bg-indigo-500/30">
       
+      {/* Onboarding Overlay */}
+      {showOnboarding && (
+        <div className="absolute inset-0 z-[60] bg-slate-950/90 backdrop-blur-md flex flex-col items-center justify-center p-6 animate-[fadeIn_0.5s]">
+           <div className="w-full max-w-sm bg-slate-900 border border-indigo-500/30 rounded-3xl p-6 shadow-2xl relative overflow-hidden">
+             <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-indigo-500 to-purple-500" />
+             
+             <div className="flex justify-center mb-6">
+                <div className="w-16 h-16 bg-indigo-500/20 rounded-full flex items-center justify-center animate-pulse">
+                  <Activity size={32} className="text-indigo-400" />
+                </div>
+             </div>
+             
+             <h2 className="text-2xl font-bold text-center text-white mb-2">Welcome to Aura</h2>
+             <p className="text-sm text-slate-400 text-center mb-6 leading-relaxed">
+               Your intelligent health companion. Here's how to use your new dashboard:
+             </p>
+             
+             <div className="space-y-4 mb-8">
+               <div className="flex gap-4 items-start">
+                 <div className="w-8 h-8 rounded-lg bg-slate-800 flex items-center justify-center shrink-0 border border-white/5">
+                   <User size={16} className="text-indigo-400" />
+                 </div>
+                 <div>
+                   <h3 className="text-sm font-bold text-white">Digital Twin</h3>
+                   <p className="text-xs text-slate-400">The avatar reflects your real-time body status.</p>
+                 </div>
+               </div>
+               
+               <div className="flex gap-4 items-start">
+                 <div className="w-8 h-8 rounded-lg bg-slate-800 flex items-center justify-center shrink-0 border border-white/5">
+                   <Sparkles size={16} className="text-indigo-400" />
+                 </div>
+                 <div>
+                   <h3 className="text-sm font-bold text-white">Action Preview</h3>
+                   <p className="text-xs text-slate-400">Simulate habits to see effects <i>before</i> you do them.</p>
+                 </div>
+               </div>
+               
+               <div className="flex gap-4 items-start">
+                 <div className="w-8 h-8 rounded-lg bg-slate-800 flex items-center justify-center shrink-0 border border-white/5">
+                   <Activity size={16} className="text-indigo-400" />
+                 </div>
+                 <div>
+                   <h3 className="text-sm font-bold text-white">Live Monitor</h3>
+                   <p className="text-xs text-slate-400">Track heart, stress, and environment in real-time.</p>
+                 </div>
+               </div>
+             </div>
+             
+             <button 
+               onClick={() => setShowOnboarding(false)}
+               className="w-full py-3 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-xl transition-all shadow-lg shadow-indigo-900/40 flex items-center justify-center gap-2"
+             >
+               Get Started <ArrowRight size={18} />
+             </button>
+           </div>
+        </div>
+      )}
+
       {/* App Container - Fixed Height */}
       <div className="w-full max-w-md h-full bg-slate-950 relative flex flex-col shadow-2xl border-x border-slate-900">
         
@@ -207,6 +267,11 @@ function App() {
              wellnessScore={wellnessScore}
              isRiskMode={isRiskMode}
            />
+           
+           {/* Info help toggle for Avatar */}
+           <button onClick={() => setShowOnboarding(true)} className="absolute top-4 left-4 p-1.5 bg-slate-900/50 rounded-full text-slate-500 hover:text-white transition">
+             <Info size={14} />
+           </button>
         </div>
 
         {/* --- SCROLLABLE CONTENT (Bottom) --- */}

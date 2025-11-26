@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import { SimulationAction } from '../types';
-import { Droplets, Pill, Wind, Moon, AlertTriangle, Coffee, Utensils, Zap } from 'lucide-react';
+import { Pill, Wind, Moon, AlertTriangle, Coffee, Utensils, Zap, Droplets, Activity } from 'lucide-react';
 
 interface ActionSimulatorProps {
   onSimulate: (action: SimulationAction, isRisk: boolean) => void;
@@ -87,15 +87,18 @@ const ActionSimulator: React.FC<ActionSimulatorProps> = ({ onSimulate, onClear, 
   const isRiskActive = riskFactors.some(r => r.id === activeActionId);
 
   return (
-    <div className="w-full">
-      <div className="flex justify-between items-start mb-3 px-2">
+    <div className="w-full relative">
+      <div className="flex justify-between items-start mb-3 px-1">
          <div className="flex flex-col">
-           <h3 className="text-sm font-bold text-slate-300 uppercase tracking-wider">Effect Simulator</h3>
-           <p className="text-[10px] text-slate-500 mt-1">See what happens to your body.</p>
+           <div className="flex items-center gap-2">
+             <Activity size={16} className="text-indigo-400" />
+             <h3 className="text-sm font-bold text-white uppercase tracking-wider">Health Action Preview</h3>
+           </div>
+           <p className="text-[10px] text-indigo-300/80 mt-1 ml-6">Tap to see how your body reacts <span className="italic">before</span> you act.</p>
          </div>
          {activeActionId && (
            <button onClick={onClear} className="text-xs text-slate-300 hover:text-white font-medium px-3 py-1 bg-slate-700/50 rounded-lg border border-white/10">
-             Reset Body
+             Reset
            </button>
          )}
       </div>
@@ -106,7 +109,7 @@ const ActionSimulator: React.FC<ActionSimulatorProps> = ({ onSimulate, onClear, 
           onClick={() => { setMode('healthy'); onClear(); }}
           className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all ${mode === 'healthy' ? 'bg-indigo-600 text-white shadow-lg' : 'text-slate-500 hover:text-slate-300'}`}
         >
-          Improve Health
+          Positive Actions
         </button>
         <button 
           onClick={() => { setMode('risk'); onClear(); }}
@@ -116,7 +119,11 @@ const ActionSimulator: React.FC<ActionSimulatorProps> = ({ onSimulate, onClear, 
         </button>
       </div>
       
-      <div className="grid grid-cols-4 gap-3">
+      <div className="grid grid-cols-4 gap-3 relative">
+        {!activeActionId && (
+           <div className="absolute inset-0 bg-indigo-500/5 rounded-2xl animate-pulse pointer-events-none -z-10" />
+        )}
+        
         {currentActions.map((action) => {
           const isActive = activeActionId === action.id;
           const Icon = action.icon;
@@ -148,7 +155,7 @@ const ActionSimulator: React.FC<ActionSimulatorProps> = ({ onSimulate, onClear, 
            <div className="flex items-start gap-2">
              {isRiskActive ? <AlertTriangle size={16} className="text-red-400 shrink-0 mt-0.5" /> : <Pill size={16} className="text-indigo-400 shrink-0 mt-0.5" />}
              <p className={`text-xs ${isRiskActive ? 'text-red-200' : 'text-indigo-200'}`}>
-               <span className="font-bold">{isRiskActive ? 'WARNING:' : 'BENEFIT:'}</span> {activeDesc}
+               <span className="font-bold">{isRiskActive ? 'WARNING:' : 'PREDICTED BENEFIT:'}</span> {activeDesc}
              </p>
            </div>
         </div>
