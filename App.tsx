@@ -2,12 +2,14 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { HealthData, ForecastPoint, SimulationAction, Appointment, DeviceStatus } from './types';
 import BioAvatar from './components/BioAvatar';
 import Assistant from './components/Assistant';
-import ForecastWidget from './components/ForecastWidget';
 import ActionSimulator from './components/ActionSimulator';
 import AppointmentWidget from './components/AppointmentWidget';
-import SmartDeviceGrid from './components/SmartDeviceGrid';
-import { generateHealthInsight, generateForecast } from './services/gemini';
-import { MessageSquareText, Watch, Activity, Sparkles, User, Flame } from 'lucide-react';
+import NutriScannerWidget from './components/NutriScannerWidget';
+import BioTuningWidget from './components/BioTuningWidget';
+import HealthTestsWidget from './components/HealthTestsWidget'; 
+import EmergencyOverlay from './components/EmergencyOverlay';
+import { generateHealthInsight } from './services/gemini';
+import { MessageSquareText, Watch, Activity, Sparkles, User, AlertCircle } from 'lucide-react';
 
 // --- MOCK DATA GENERATOR ---
 const generateMockData = (): HealthData => {
@@ -74,12 +76,14 @@ function App() {
   // State for visual spotlighting
   const [activeHighlight, setActiveHighlight] = useState<string | null>(null);
   
-  const [forecast, setForecast] = useState<ForecastPoint[]>([]);
   const [insight, setInsight] = useState<string>("Analyzing your daily bio-rhythms...");
   const [isAssistantOpen, setAssistantOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [wellnessScore, setWellnessScore] = useState(85);
   const [activeTab, setActiveTab] = useState<'monitor' | 'goals' | 'profile'>('monitor');
+  
+  // SOS State
+  const [isSOSActive, setSOSActive] = useState(false);
 
   const [deviceStatus, setDeviceStatus] = useState<DeviceStatus>({
     isConnected: true,
@@ -120,7 +124,6 @@ function App() {
     }));
     
     generateHealthInsight(newData).then(setInsight);
-    generateForecast(newData).then(setForecast);
     
     setLoading(false);
   }, []);
@@ -157,6 +160,11 @@ function App() {
     setWellnessScore(calculateWellnessScore(healthData));
   };
 
+  const handleSOS = () => {
+    setSOSActive(true);
+    setIsRiskMode(true);
+  };
+
   const displayData = simulatedData || healthData;
   const isEmergency = isRiskMode || displayData.heartRate.value > 120 || displayData.stressLevel.value > 80;
 
@@ -166,10 +174,9 @@ function App() {
       {/* App Container */}
       <div className="w-full max-w-md h-full bg-slate-950 relative shadow-2xl border-x border-slate-900 overflow-hidden">
         
-        {/* --- HEADER (FIXED TOP Z-10) --- */}
-        {/* Z-10 is lower than Scroll Sheet (Z-50) so sheet covers it */}
+        {/* --- HEADER TEXT (Z-10: Behind Scroll Sheet) --- */}
         <header className="absolute top-0 left-0 right-0 px-6 pt-6 pb-2 z-10 pointer-events-none">
-          <div className="flex justify-between items-start pointer-events-auto">
+          <div className="flex justify-between items-start">
             <div className="flex flex-col max-w-[75%]">
               <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-full bg-slate-900/80 backdrop-blur-md border border-white/10 w-fit mb-2 shadow-lg">
                  <Watch size={10} className={deviceStatus.isConnected ? "text-emerald-400" : "text-slate-600"} />
@@ -186,29 +193,21 @@ function App() {
                 {isRiskMode ? "Alert: Simulating adverse event." : insight}
               </p>
             </div>
-
-            {/* Harmony Score */}
-            <div className="flex flex-col items-center">
-               <div className="relative">
-                 <div className={`w-12 h-12 rounded-full border flex items-center justify-center transition-all duration-500 backdrop-blur-md shadow-lg ${
-                   wellnessScore > 80 ? 'border-emerald-500/30 bg-emerald-500/10' : 
-                   wellnessScore > 50 ? 'border-amber-500/30 bg-amber-500/10' : 'border-red-500/30 bg-red-500/10'
-                 }`}>
-                    <span className={`text-lg font-bold ${
-                       wellnessScore > 80 ? 'text-emerald-400' : 
-                       wellnessScore > 50 ? 'text-amber-400' : 'text-red-400'
-                    }`}>{wellnessScore}</span>
-                 </div>
-                 <div className="absolute -top-1 -right-1 bg-slate-900 rounded-full p-0.5 border border-white/5">
-                   <Flame size={10} className={wellnessScore > 80 ? 'text-orange-400 fill-orange-400' : 'text-slate-600'} />
-                 </div>
-               </div>
-            </div>
           </div>
         </header>
 
+        {/* --- SOS BUTTON (Z-60: Always Clickable) --- */}
+        <div className="absolute top-6 right-6 z-[60]">
+           <button 
+             onClick={handleSOS}
+             className="w-12 h-12 rounded-full bg-red-600/20 border border-red-500 text-red-500 flex flex-col items-center justify-center animate-pulse shadow-[0_0_25px_rgba(239,68,68,0.4)] active:scale-90 transition-transform hover:bg-red-600/30 cursor-pointer"
+           >
+              <AlertCircle size={18} fill="currentColor" className="text-red-500" />
+              <span className="text-[8px] font-black mt-0.5">SOS</span>
+           </button>
+        </div>
+
         {/* --- BIO AVATAR (FIXED BACKGROUND Z-0) --- */}
-        {/* Adjusted pt to 32 (128px) to safely clear header while keeping layout tight */}
         <div className="absolute top-0 left-0 w-full h-[540px] z-0 flex items-center justify-center pt-32">
            <BioAvatar 
              data={healthData} 
@@ -221,13 +220,12 @@ function App() {
         </div>
 
         {/* --- CONTENT SCROLL (COVER SHEET Z-50) --- */}
-        {/* Z-50 ensures this is on top of Header. bg-slate-950 ensures no transparency ghosting. */}
-        <div className="absolute inset-0 z-50 overflow-y-auto no-scrollbar pb-24">
+        <div className="absolute inset-0 z-50 overflow-y-auto no-scrollbar pb-24 scroll-smooth">
           
-          {/* Spacer to show Avatar initially - Adjusted to 480px to reveal bottom metrics */}
+          {/* Spacer to show Avatar initially */}
           <div className="w-full h-[480px] shrink-0 pointer-events-none" />
 
-          {/* Sliding Sheet */}
+          {/* Sliding Sheet - SOLID BG for Clean Scroll Overlap */}
           <div className="w-full min-h-screen bg-slate-950 rounded-t-[2.5rem] shadow-[0_-10px_40px_rgba(0,0,0,0.8)] border-t border-white/10 p-5 pb-32 transition-all relative">
              
              {/* Handle bar for visual cue */}
@@ -235,10 +233,10 @@ function App() {
                 <div className="w-12 h-1 bg-slate-800 rounded-full" />
              </div>
 
-             {/* CONTROL DECK (Simulator + Smart Home) */}
+             {/* CONTROL DECK (Simulator + NutriScanner) */}
             <div className="animate-[fadeIn_0.3s]">
                <div className="flex justify-between items-center mb-2 px-1">
-                 <h2 className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Control Deck</h2>
+                 <h2 className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Command Center</h2>
                </div>
                
                <div className="grid grid-cols-1 gap-3">
@@ -247,21 +245,36 @@ function App() {
                    onClear={clearSimulation}
                    activeActionId={activeSimulationId}
                  />
-                 <SmartDeviceGrid />
+                 {/* NutriScanner - Out of Box Feature */}
+                 <NutriScannerWidget />
                </div>
             </div>
+
+            {/* NEURO-RESONANCE (BIO-FEEDBACK) */}
+            <div className="animate-[fadeIn_0.4s] mt-5">
+               <BioTuningWidget 
+                 currentStress={displayData.stressLevel.value}
+                 currentEnergy={displayData.energyLevel}
+               />
+            </div>
             
-            {/* CARE CONNECT */}
-            <div className="animate-[fadeIn_0.5s] mt-5">
-                <AppointmentWidget appointments={mockAppointments} isRiskMode={isRiskMode} />
+            {/* CARE CONNECT - Strictly Appointment Booking */}
+            <div id="care-connect" className="animate-[fadeIn_0.5s] mt-5">
+                <AppointmentWidget 
+                    appointments={mockAppointments} 
+                    isRiskMode={isRiskMode}
+                />
             </div>
 
-            {/* FORECAST */}
+            {/* ACTIVE HEALTH TESTS (Multi-Test Hub) */}
             <div className="animate-[fadeIn_0.6s] mt-5">
-               <ForecastWidget forecast={forecast} loading={loading} />
+               <HealthTestsWidget />
             </div>
           </div>
         </div>
+
+        {/* Global Emergency Overlay */}
+        <EmergencyOverlay isOpen={isSOSActive} onClose={() => setSOSActive(false)} />
 
         {/* Floating AI Button (Fixed Z-[60]) */}
         <div className="absolute bottom-24 right-6 z-[60]">

@@ -60,6 +60,21 @@ export interface SmartHomeState {
   airQuality: 'Good' | 'Fair' | 'Poor';
 }
 
+// New Interface for Food Scanner
+export interface ScannedFood {
+  name: string;
+  calories: number;
+  bioImpact: {
+    metric: string; // e.g., "Hydration"
+    change: number; // e.g., -10
+    unit: string;
+    isPositive: boolean;
+  }[];
+  warning?: string;
+}
+
+export type BrainwaveMode = 'Focus' | 'Relax' | 'Sleep' | 'Neutral';
+
 export enum AppView {
   MONITOR = 'MONITOR',
   CONTROL = 'CONTROL',

@@ -18,6 +18,7 @@ const BioAvatar: React.FC<BioAvatarProps> = ({
   data, 
   simulatedData, 
   isRiskMode = false, 
+  wellnessScore = 90,
   highlightedMetric,
   onMetricSelect,
 }) => {
@@ -100,7 +101,7 @@ const BioAvatar: React.FC<BioAvatarProps> = ({
           transition-all duration-200 border shadow-lg
           ${isActive 
             ? 'bg-slate-800 border-indigo-400 shadow-[0_0_15px_rgba(99,102,241,0.5)] scale-110 ring-1 ring-indigo-400/50' 
-            : 'bg-slate-950 border-slate-700/60 hover:bg-slate-900 hover:border-slate-500 shadow-black/60'}
+            : 'bg-slate-950/80 border-slate-700/60 hover:bg-slate-900 hover:border-slate-500 shadow-black/60'}
         `}>
           <div className="flex items-center gap-1.5 mb-1">
              <Icon size={12} className={color} />
@@ -131,6 +132,15 @@ const BioAvatar: React.FC<BioAvatarProps> = ({
         transition={{ duration: isRiskMode ? 0.8 : 4, repeat: Infinity }}
         className="absolute w-64 h-64 rounded-full blur-[60px] pointer-events-none"
       />
+      
+      {/* --- BACKGROUND WATERMARK SCORE (BEHIND AVATAR) --- */}
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-0 opacity-10 pointer-events-none">
+         <span className={`text-[180px] font-black leading-none ${
+           wellnessScore > 80 ? 'text-emerald-400' : wellnessScore > 50 ? 'text-amber-400' : 'text-red-400'
+         }`}>
+           {wellnessScore}
+         </span>
+      </div>
 
       {/* --- HUD METRICS (SYMMETRICAL 3-ROW GRID) --- */}
       
@@ -229,7 +239,7 @@ const BioAvatar: React.FC<BioAvatarProps> = ({
           animate={{
              stroke: ['bp', 'temp'].includes(highlightedMetric || '') ? '#fbbf24' : (isRiskMode ? "#f87171" : "rgba(255, 255, 255, 0.15)"),
              strokeWidth: ['bp', 'temp'].includes(highlightedMetric || '') ? 3 : 1.5,
-             opacity: highlightedMetric && !['bp', 'temp'].includes(highlightedMetric) ? 0.3 : 1
+             opacity: highlightedMetric && !['bp', 'temp'].includes(highlightedMetric) ? 0.1 : 1
           }}
           className="transition-all duration-500"
         />
