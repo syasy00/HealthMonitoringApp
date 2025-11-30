@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { HealthData } from '../types';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -64,7 +65,7 @@ const BioAvatar: React.FC<BioAvatarProps> = ({
       : (displayData.stressLevel.status === 'normal' ? '#10b981' : '#ef4444'); // Green/Red for live status
 
   // --- SPOTLIGHT LOGIC ---
-  // When a metric is active, other parts dim to 0.1 opacity, active part goes to 1
+  // When a metric is active, other parts dim to 0.1 opacity (stronger contrast), active part goes to 1
   const getOpacity = (keys: string[]) => {
     if (!highlightedMetric) return 1; // Default visibility
     return keys.includes(highlightedMetric) ? 1 : 0.1;
@@ -95,18 +96,18 @@ const BioAvatar: React.FC<BioAvatarProps> = ({
         }}
       >
         <div className={`
-          backdrop-blur-md rounded-xl px-3 py-2 flex flex-col items-center min-w-[70px] 
-          transition-all duration-200 border
+          backdrop-blur-md rounded-xl px-3 py-2 flex flex-col items-center min-w-[75px] 
+          transition-all duration-200 border shadow-lg
           ${isActive 
-            ? 'bg-slate-800/90 border-indigo-400 shadow-[0_0_15px_rgba(99,102,241,0.5)]' 
-            : 'bg-slate-900/60 border-white/0 hover:bg-slate-900/80 hover:border-white/10'}
+            ? 'bg-slate-800 border-indigo-400 shadow-[0_0_15px_rgba(99,102,241,0.5)] scale-110 ring-1 ring-indigo-400/50' 
+            : 'bg-slate-950 border-slate-700/60 hover:bg-slate-900 hover:border-slate-500 shadow-black/60'}
         `}>
-          <div className="flex items-center gap-1.5 mb-1 opacity-90">
+          <div className="flex items-center gap-1.5 mb-1">
              <Icon size={12} className={color} />
              <span className="text-[10px] font-bold text-slate-300 uppercase tracking-wider">{label}</span>
           </div>
           <div className="flex items-baseline gap-0.5">
-            <span className={`text-base font-bold leading-none ${color === 'text-red-400' ? 'text-red-400' : 'text-white'}`}>{value}</span>
+            <span className={`text-lg font-bold leading-none ${color === 'text-red-400' ? 'text-red-400' : 'text-white'}`}>{value}</span>
             {unit && <span className="text-[9px] text-slate-400 font-medium ml-0.5">{unit}</span>}
           </div>
         </div>
@@ -214,7 +215,7 @@ const BioAvatar: React.FC<BioAvatarProps> = ({
       >
         <defs>
           <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
-            <feGaussianBlur stdDeviation="4" result="blur" />
+            <feGaussianBlur stdDeviation="6" result="blur" />
             <feComposite in="SourceGraphic" in2="blur" operator="over" />
           </filter>
         </defs>
@@ -222,9 +223,11 @@ const BioAvatar: React.FC<BioAvatarProps> = ({
         {/* Body Container (Visible for Temp/BP or standard) */}
         <motion.path 
           d="M100 30C115 30 125 40 125 55C125 65 120 75 110 80L135 90L155 120L145 180L130 150L130 220L145 350H115L110 240H90L85 350H55L70 220L70 150L55 180L45 120L65 90L90 80C80 75 75 65 75 55C75 40 85 30 100 30Z" 
-          fill="rgba(30, 41, 59, 0.85)" 
+          fill="rgba(30, 41, 59, 0.95)" 
+          stroke="rgba(255, 255, 255, 0.15)"
+          strokeWidth="1.5"
           animate={{
-             stroke: ['bp', 'temp'].includes(highlightedMetric || '') ? '#fbbf24' : (isRiskMode ? "#f87171" : "rgba(255, 255, 255, 0.3)"),
+             stroke: ['bp', 'temp'].includes(highlightedMetric || '') ? '#fbbf24' : (isRiskMode ? "#f87171" : "rgba(255, 255, 255, 0.15)"),
              strokeWidth: ['bp', 'temp'].includes(highlightedMetric || '') ? 3 : 1.5,
              opacity: highlightedMetric && !['bp', 'temp'].includes(highlightedMetric) ? 0.3 : 1
           }}
