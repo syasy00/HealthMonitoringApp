@@ -1,12 +1,30 @@
-// App.tsx (Fixed)
+// App.tsx (with Bottom Navigation)
 import React, { useEffect, useState } from 'react';
-import { HealthData, Medication, ActivityData, Appointment, BodyPart, EnvironmentalState } from './types';
+import {
+  HealthData,
+  Medication,
+  ActivityData,
+  Appointment,
+  BodyPart,
+  EnvironmentalState
+} from './types';
 import BioAvatar from './components/BioAvatar';
 import BioControls from './components/BioControls';
 import NutriScanner from './components/NutriScanner';
 import AppointmentWidget from './components/AppointmentWidget';
 import MedicationManager from './components/MedicationManager';
-import { Zap, ScanBarcode, Utensils, X, Brain, Activity, AlertCircle, ShieldAlert } from 'lucide-react';
+import {
+  Zap,
+  ScanBarcode,
+  Utensils,
+  X,
+  Brain,
+  Activity,
+  AlertCircle,
+  ShieldAlert,
+  Sparkles,
+  User
+} from 'lucide-react';
 import SymptomSelector from './components/SymptomSelector';
 import AiDoctorFab from './components/AiDoctorFab';
 import EmergencyOverlay from './components/EmergencyOverlay';
@@ -137,7 +155,7 @@ function App() {
   );
   const [visualTrigger, setVisualTrigger] = useState<string | null>(null);
 
-  const [environment, setEnvironment] = useState<EnvironmentalState>(initialEnvironment);
+  const [environment] = useState<EnvironmentalState>(initialEnvironment);
   const [doctorSuggestion, setDoctorSuggestion] = useState<string>("Don't forget your Vit D!");
   const [mood, setMood] = useState('Neutral');
 
@@ -145,6 +163,9 @@ function App() {
   const [selectedBodyPart, setSelectedBodyPart] = useState<BodyPart | null>(null);
   const [showDoctorMenu, setShowDoctorMenu] = useState(false);
   const [isSOSActive, setSOSActive] = useState(false);
+
+  // bottom navigation state (visual only for now)
+  const [activeTab, setActiveTab] = useState<'monitor' | 'wellness' | 'profile'>('monitor');
 
   // --- SMART SUGGESTION LOGIC ---
   useEffect(() => {
@@ -307,7 +328,8 @@ function App() {
           </button>
         </header>
 
-        <main className="flex-1 overflow-y-auto no-scrollbar p-4 space-y-4 relative">
+        {/* MAIN CONTENT */}
+        <main className="flex-1 overflow-y-auto no-scrollbar p-4 space-y-4 relative pb-20">
           {/* HERO CARD */}
           <div className="relative bg-slate-900/40 rounded-[2rem] border border-white/5 p-4 overflow-hidden flex flex-col shadow-2xl shadow-black/40">
             <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-5 pointer-events-none mix-blend-overlay" />
@@ -347,13 +369,19 @@ function App() {
               <MedicationManager
                 medications={meds}
                 onTake={handleTakeMed}
-                onAddMed={handleAddMed} onShowDetails={function (id: string): void {
-                  throw new Error('Function not implemented.');
-                } }              />
+                onAddMed={handleAddMed}
+                onShowDetails={(id: string) => {
+                  setAiInsight(`Feature: would open details for medication ${id}.`);
+                }}
+              />
             </div>
 
             {/* NUTRITION WIDGET */}
-            <div className={`relative w-full transition-all duration-500 ease-[cubic-bezier(0.25,1,0.5,1)] ${showScanner ? 'h-[500px]' : 'h-24'} rounded-3xl overflow-hidden shadow-lg`}>
+            <div
+              className={`relative w-full transition-all duration-500 ease-[cubic-bezier(0.25,1,0.5,1)] ${
+                showScanner ? 'h-[500px]' : 'h-24'
+              } rounded-3xl overflow-hidden shadow-lg`}
+            >
               {showScanner ? (
                 <div className="absolute inset-0 bg-[#151925] border border-amber-500/20 z-40 flex flex-col">
                   <NutriScanner
@@ -383,10 +411,55 @@ function App() {
             </div>
           </div>
 
-          <div className="pb-6">
+          <div className="pb-2">
             <AppointmentWidget appointments={mockAppointments} />
           </div>
         </main>
+
+        {/* BOTTOM NAVIGATION */}
+        <nav className="h-14 px-6 border-t border-white/5 bg-[#050814]/95 backdrop-blur-xl flex items-center justify-between shrink-0 z-40">
+          {/* Monitor */}
+          <button
+            onClick={() => setActiveTab('monitor')}
+            className={`flex flex-col items-center justify-center gap-0.5 text-[10px] font-semibold ${
+              activeTab === 'monitor' ? 'text-indigo-300' : 'text-slate-500'
+            }`}
+          >
+            <Activity
+              size={18}
+              className={activeTab === 'monitor' ? 'text-indigo-400' : 'text-slate-500'}
+            />
+            <span>Monitor</span>
+          </button>
+
+          {/* Wellness / Insights */}
+          <button
+            onClick={() => setActiveTab('wellness')}
+            className={`flex flex-col items-center justify-center gap-0.5 text-[10px] font-semibold ${
+              activeTab === 'wellness' ? 'text-emerald-300' : 'text-slate-500'
+            }`}
+          >
+            <Sparkles
+              size={18}
+              className={activeTab === 'wellness' ? 'text-emerald-400' : 'text-slate-500'}
+            />
+            <span>Wellness</span>
+          </button>
+
+          {/* Profile */}
+          <button
+            onClick={() => setActiveTab('profile')}
+            className={`flex flex-col items-center justify-center gap-0.5 text-[10px] font-semibold ${
+              activeTab === 'profile' ? 'text-slate-100' : 'text-slate-500'
+            }`}
+          >
+            <User
+              size={18}
+              className={activeTab === 'profile' ? 'text-slate-100' : 'text-slate-500'}
+            />
+            <span>Profile</span>
+          </button>
+        </nav>
 
         {/* GLOBAL OVERLAYS */}
         <EmergencyOverlay isOpen={isSOSActive} onClose={() => setSOSActive(false)} />
