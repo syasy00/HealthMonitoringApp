@@ -1,0 +1,117 @@
+export interface VitalSign {
+  id: string;
+  name: string;
+  value: number;
+  unit: string;
+  status: 'normal' | 'warning' | 'critical';
+  trend: 'up' | 'down' | 'stable';
+  description: string;
+  history: number[];
+}
+
+export interface HealthData {
+  heartRate: VitalSign;
+  bloodPressureSys: VitalSign;
+  bloodPressureDia: VitalSign;
+  oxygenLevel: VitalSign;
+  temperature: VitalSign;
+  stressLevel: VitalSign;
+  hydration: VitalSign;
+  energyLevel: number;
+  activeSymptoms: Symptom[]; // Added for symptom logging
+}
+
+export interface ActivityData {
+  steps: number;
+  goalSteps: number;
+  activeMinutes: number;
+  caloriesBurned: number;
+  standHours: number;
+}
+
+export interface Medication {
+  id: string;
+  name: string;
+  dosage: string;
+  time: string;
+  taken: boolean;
+  type: 'pill' | 'liquid' | 'injection';
+}
+
+export interface Appointment {
+  id: string;
+  doctorName: string;
+  specialty: string;
+  date: Date;
+  type: 'Video' | 'In-Person';
+}
+
+export interface SimulationAction {
+  id: string;
+  label: string;
+  icon: any; // Lucide icon component
+  color: string;
+  effect: Partial<HealthData>; // What changes if this action is taken
+  description: string;
+}
+
+export interface DeviceStatus {
+  isConnected: boolean;
+  batteryLevel: number;
+  lastSync: Date;
+  deviceName: string;
+  isSyncing: boolean;
+}
+
+export interface ChatMessage {
+  role: 'user' | 'model';
+  text: string;
+  timestamp: Date;
+}
+
+export interface ForecastPoint {
+  time: string;
+  energy: number;
+  stress: number;
+}
+
+export interface SmartHomeState {
+  temperature: number;
+  isDoorLocked: boolean;
+  lightsIntensity: number;
+  isPillDispensed: boolean;
+  airQuality: 'Good' | 'Fair' | 'Poor';
+}
+
+// --- SYMPTOMS AND ENVIRONMENTAL ---
+
+export type BodyPart = 'head' | 'chest' | 'stomach' | 'legs' | 'general';
+
+export interface Symptom {
+  id: string;
+  name: string;
+  severity: 'mild' | 'moderate' | 'severe';
+  bodyPart: BodyPart;
+  timestamp: Date;
+}
+
+// Added for the Environmental Health feature
+export interface EnvironmentalState {
+    outdoorTempC: number;
+    airQualityIndex: 'Good' | 'Moderate' | 'Unhealthy';
+    noiseLevelDb: number;
+    isRaining: boolean;
+}
+
+// Added for the Food Scanner feature
+export interface ScannedFood {
+  name: string;
+  calories: number;
+  bioImpact: {
+    metric: string;
+    change: number;
+    unit: string;
+    isPositive: boolean;
+  }[];
+  warning?: string;
+}
