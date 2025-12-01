@@ -9,6 +9,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
+<<<<<<< HEAD
     "@google/genai": "*",
     "framer-motion": "^11.0.0",
     "lucide-react": "^0.344.0",
@@ -19,8 +20,24 @@
   "devDependencies": {
     "@types/react": "^18.3.27",
     "@types/react-dom": "^18.3.7",
+=======
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "framer-motion": "^11.0.0",
+    "lucide-react": "^0.344.0",
+    "recharts": "^2.12.0",
+    "@google/genai": "*"
+  },
+  "devDependencies": {
+    "@types/react": "^18.2.64",
+    "@types/react-dom": "^18.2.21",
+>>>>>>> b107bb86270a912acadea07e414f3bf4ea912b04
     "@vitejs/plugin-react": "^4.2.1",
     "typescript": "^5.2.2",
     "vite": "^5.1.6"
   }
+<<<<<<< HEAD
 }
+=======
+}
+>>>>>>> b107bb86270a912acadea07e414f3bf4ea912b04
