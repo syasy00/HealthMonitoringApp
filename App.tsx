@@ -1,3 +1,4 @@
+// App.tsx (Fixed)
 import React, { useEffect, useState } from 'react';
 import { HealthData, Medication, ActivityData, Appointment, BodyPart, EnvironmentalState } from './types';
 import BioAvatar from './components/BioAvatar';
@@ -308,7 +309,7 @@ function App() {
 
         <main className="flex-1 overflow-y-auto no-scrollbar p-4 space-y-4 relative">
           {/* HERO CARD */}
-          <div className="relative bg-slate-900/40 rounded-[2rem] border border-white/5 p-4 overflow-hidden flex flex-col min-h-[580px] shadow-2xl shadow-black/40">
+          <div className="relative bg-slate-900/40 rounded-[2rem] border border-white/5 p-4 overflow-hidden flex flex-col shadow-2xl shadow-black/40">
             <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-5 pointer-events-none mix-blend-overlay" />
             <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-500/10 rounded-full blur-[80px] pointer-events-none" />
 
