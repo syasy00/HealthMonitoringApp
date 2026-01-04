@@ -1,11 +1,10 @@
 import React from 'react';
 import { Medication } from '../types';
-import { Pill, Check, Clock, Plus } from 'lucide-react';
+import { Pill, Check, Clock, Plus, ChevronRight } from 'lucide-react';
 
 interface MedicationManagerProps {
   medications: Medication[];
   onTake: (id: string) => void;
-  // This could trigger a modal for adding new meds (omitted for brevity)
   onAddMed: () => void; 
   onShowDetails: (id: string) => void; 
 }
@@ -15,94 +14,78 @@ const MedicationManager: React.FC<MedicationManagerProps> = ({
   onTake,
   onAddMed
 }) => {
-  const takenCount = medications.filter(m => m.taken).length;
-  const totalCount = medications.length;
-  const allDone = takenCount === totalCount && totalCount > 0;
+  const allDone = medications.every(m => m.taken);
 
   return (
-    <div className="w-full bg-[#151925] rounded-3xl p-5 border border-white/5 flex flex-col shadow-lg">
+    <div className="w-full bg-white rounded-[2rem] p-5 shadow-sm border border-slate-100 flex flex-col gap-4">
       
       {/* Header */}
-      <div className="flex justify-between items-center mb-3">
-        <div className="flex flex-col">
-           <Pill size={14} className="text-emerald-400 mb-1" />
-           <span className="text-[10px] font-black tracking-widest text-slate-300 uppercase leading-none">
-             MEDS ROUTINE
-           </span>
-           <span className="text-[10px] font-bold text-slate-500 uppercase leading-none">
-             {allDone ? 'Routine Complete' : 'Due Soon'}
-           </span>
+      <div className="flex justify-between items-end">
+        <div>
+           <div className="flex items-center gap-2 mb-1">
+             <div className="p-1.5 bg-emerald-100 rounded-lg">
+               <Pill size={14} className="text-emerald-600" />
+             </div>
+             <span className="text-[10px] font-bold text-emerald-600 uppercase tracking-wider">Routine</span>
+           </div>
+           <h3 className="text-lg font-black text-slate-900 leading-none">Medications</h3>
         </div>
         
-        {/* Status Box */}
-        <div className={`px-3 py-1.5 rounded-xl border flex flex-col items-center justify-center min-w-[60px] transition-colors ${
-          allDone 
-            ? 'bg-emerald-900/20 border-emerald-500/20' 
-            : 'bg-slate-800/40 border-white/5'
-        }`}>
-          <span className={`text-xs font-black ${allDone ? 'text-emerald-400' : 'text-slate-200'}`}>
-            {takenCount}/{totalCount}
-          </span>
-          <span className="text-[8px] font-bold text-slate-500 uppercase tracking-wider">
-            TAKEN
-          </span>
+        {/* Progress Pill */}
+        <div className={`px-3 py-1.5 rounded-full text-xs font-bold border ${allDone ? 'bg-emerald-50 text-emerald-600 border-emerald-100' : 'bg-orange-50 text-orange-600 border-orange-100'}`}>
+          {medications.filter(m => m.taken).length}/{medications.length} Taken
         </div>
       </div>
 
-      {/* Meds List */}
-      <div className="flex-1 overflow-y-auto no-scrollbar space-y-2 mt-3">
+      {/* List */}
+      <div className="space-y-2">
         {medications.map((med) => (
           <div 
             key={med.id}
-            className={`group flex items-center justify-between p-3 rounded-xl transition-all ${
+            className={`group relative flex items-center justify-between p-3 rounded-2xl border transition-all duration-300 ${
               med.taken 
-                ? 'bg-slate-800/20 opacity-50' 
-                : 'bg-white/5 hover:bg-white/10'
+                ? 'bg-slate-50 border-slate-100 opacity-60' 
+                : 'bg-white border-slate-100 hover:border-indigo-100 hover:shadow-md hover:-translate-y-0.5'
             }`}
           >
-            {/* Left Side */}
-            <div className="flex items-center gap-3">
-              <div className={`w-8 h-8 rounded-lg flex items-center justify-center transition-colors ${
-                med.taken ? 'bg-slate-800/50 text-slate-600' : 'bg-indigo-500/10 text-indigo-400'
-              }`}>
-                <Pill size={16} />
+            <div className="flex items-center gap-3.5">
+              {/* Icon Box */}
+              <div className={`w-10 h-10 rounded-xl flex items-center justify-center transition-colors ${med.taken ? 'bg-slate-200 text-slate-400' : 'bg-indigo-50 text-indigo-600'}`}>
+                <Pill size={18} />
               </div>
               
-              {/* Text Info */}
-              <div className="flex flex-col gap-0.5">
-                <span className={`text-xs font-bold ${med.taken ? 'text-slate-500 line-through' : 'text-slate-200'}`}>
+              <div className="flex flex-col">
+                <span className={`text-sm font-bold ${med.taken ? 'text-slate-400 line-through' : 'text-slate-800'}`}>
                   {med.name}
                 </span>
-                <div className="flex items-center gap-2">
-                   <span className="text-[10px] text-slate-500 font-medium">{med.dosage}</span>
+                <div className="flex items-center gap-2 text-[11px] text-slate-500 font-medium">
+                   <span>{med.dosage}</span>
+                   <span className="w-1 h-1 rounded-full bg-slate-300" />
                    <div className="flex items-center gap-1">
-                      <Clock size={8} className="text-indigo-400" />
-                      <span className="text-[9px] text-indigo-300 font-mono">{med.time}</span>
+                      <Clock size={10} /> {med.time}
                    </div>
                 </div>
               </div>
             </div>
 
-            {/* Action Checkbox */}
             <button 
               onClick={() => onTake(med.id)}
               disabled={med.taken}
-              className={`w-7 h-7 rounded-full flex items-center justify-center transition-all ${
+              className={`w-8 h-8 rounded-full flex items-center justify-center transition-all ${
                 med.taken 
-                  ? 'bg-transparent text-emerald-500' 
-                  : 'bg-slate-800 text-slate-600 hover:bg-emerald-500 hover:text-white border border-white/10'
+                  ? 'bg-emerald-100 text-emerald-600' 
+                  : 'bg-slate-100 text-slate-300 hover:bg-emerald-500 hover:text-white'
               }`}
             >
-              <Check size={14} strokeWidth={3} />
+              <Check size={16} strokeWidth={3} />
             </button>
           </div>
         ))}
-        
-        {/* Add New Button */}
-        <button onClick={onAddMed} className="w-full text-indigo-400 hover:text-indigo-300 text-xs font-bold mt-3 py-2 border border-dashed border-indigo-500/30 rounded-xl flex items-center justify-center gap-2">
-            <Plus size={14}/> Add New Medication
-        </button>
       </div>
+      
+      <button onClick={onAddMed} className="w-full py-3 rounded-xl border border-dashed border-slate-300 text-slate-400 text-xs font-bold hover:bg-slate-50 hover:border-slate-400 hover:text-slate-600 transition flex items-center justify-center gap-2">
+          <Plus size={14}/> Add Medication
+      </button>
     </div>
   );
 };

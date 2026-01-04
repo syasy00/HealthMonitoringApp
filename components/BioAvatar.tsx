@@ -1,15 +1,7 @@
 import React from 'react';
 import { HealthData, ActivityData, BodyPart, EnvironmentalState } from '../types';
 import { motion, AnimatePresence } from 'framer-motion';
-import {
-  Footprints,
-  Activity,
-  Wind,
-  Droplets,
-  Brain,
-  Thermometer,
-  HeartPulse
-} from 'lucide-react';
+import { Footprints, Activity, Wind, Droplets, Brain, Thermometer, HeartPulse } from 'lucide-react';
 
 interface BioAvatarProps {
   data: HealthData;
@@ -17,73 +9,50 @@ interface BioAvatarProps {
   environmentalState?: EnvironmentalState;
   simulatedData?: HealthData | null;
   isRiskMode?: boolean;
-  highlightedMetric?: string | null;
-  onMetricSelect?: (metricId: string | null) => void;
-  onClickPart?: (part: string) => void;
-  onScan?: () => void;
   onBodyPartClick?: (part: BodyPart) => void;
 }
 
-// 3D Floating Tag Component
-const HolographicTag = ({
-  label,
-  value,
-  unit,
-  xOffset,
-  y,
-  delay,
-  color,
-  icon: Icon,
-  align = 'left'
-}: any) => (
+// Medical Card Style Tag
+const DataTag = ({ label, value, unit, x, y, right, delay, icon: Icon, warning, align = 'left' }: any) => (
   <motion.div
-    className="absolute flex items-center gap-2 pointer-events-none z-30"
-    style={{
-      left: `calc(50% + ${xOffset}px)`,
+    className="absolute z-30 pointer-events-none"
+    style={{ 
       top: y,
-      transform: 'translateZ(40px)',
-      flexDirection: align === 'right' ? 'row-reverse' : 'row'
+      // Use left or right positioning based on props
+      ...(right ? { right: right, left: 'auto' } : { left: x }) 
     }}
-    animate={{ opacity: 1, x: 0, y: [0, -4, 0] }}
-    transition={{ y: { duration: 4, repeat: Infinity, ease: 'easeInOut', delay } }}
+    initial={{ opacity: 0, scale: 0.9 }}
+    animate={{ opacity: 1, scale: 1, y: [0, -4, 0] }}
+    transition={{ y: { duration: 4, repeat: Infinity, ease: "easeInOut", delay }, opacity: { duration: 0.5 } }}
   >
-    <div
-      className={`w-4 h-[1px] ${
-        color === '#ff2a2a' ? 'bg-red-500/50' : 'bg-cyan-500/50'
-      }`}
-    />
-    <div
-      className={`flex items-center gap-2 px-3 py-1.5 rounded-lg border ${
-        color === '#ff2a2a'
-          ? 'border-red-500/50 bg-red-950/95'
-          : 'border-cyan-500/50 bg-slate-800/95'
-      } backdrop-blur-sm shadow-[0_0_15px_rgba(0,0,0,0.8)]`}
-    >
-      <Icon
-        size={12}
-        className={color === '#ff2a2a' ? 'text-red-400' : 'text-cyan-400'}
-      />
-      <div
-        className={`flex flex-col leading-none ${
-          align === 'right' ? 'items-end' : 'items-start'
-        }`}
-      >
-        <span
-          className={`text-sm font-black font-mono ${
-            color === '#ff2a2a' ? 'text-red-400' : 'text-white'
-          }`}
-        >
-          {value}{' '}
-          <span className="opacity-60 text-[9px] font-medium">{unit}</span>
-        </span>
-        <span
-          className={`text-[7px] font-bold uppercase tracking-widest ${
-            color === '#ff2a2a' ? 'text-red-400' : 'text-cyan-500'
-          }`}
-        >
-          {label}
-        </span>
+    <div className={`flex items-center gap-0 ${align === 'right' ? 'flex-row-reverse' : 'flex-row'}`}>
+      
+      {/* 1. Connector Dot */}
+      <div className={`w-2 h-2 rounded-full border-2 border-white shadow-sm z-10 ${warning ? 'bg-rose-500' : 'bg-indigo-400'}`} />
+      
+      {/* 2. Connector Line */}
+      <div className={`h-[1px] w-6 ${warning ? 'bg-rose-200' : 'bg-indigo-200'}`} />
+
+      {/* 3. The Card */}
+      <div className={`
+        flex items-center gap-2.5 px-3 py-2 rounded-2xl shadow-[0_4px_20px_rgba(0,0,0,0.05)] border backdrop-blur-md
+        ${warning 
+          ? 'bg-rose-50/95 border-rose-100 text-rose-700' 
+          : 'bg-white/90 border-white/60 text-slate-700'
+        }
+      `}>
+        <div className={`p-1.5 rounded-full ${warning ? 'bg-white/50' : 'bg-indigo-50'}`}>
+          <Icon size={14} className={warning ? 'text-rose-500' : 'text-indigo-500'} />
+        </div>
+        
+        <div className={`flex flex-col leading-none ${align === 'right' ? 'items-end' : 'items-start'}`}>
+          <span className="text-[13px] font-black tracking-tight">
+            {value} <span className="text-[10px] font-semibold opacity-60">{unit}</span>
+          </span>
+          <span className="text-[9px] font-bold uppercase tracking-wider opacity-50 mt-0.5">{label}</span>
+        </div>
       </div>
+
     </div>
   </motion.div>
 );
@@ -91,529 +60,97 @@ const HolographicTag = ({
 const BioAvatar: React.FC<BioAvatarProps> = ({
   data,
   activityData,
-  environmentalState,
   simulatedData,
   isRiskMode = false,
-  highlightedMetric,
-  onMetricSelect,
-  onScan,
   onBodyPartClick
 }) => {
   const displayData = simulatedData || data;
+  // FIX: Defined inside body to avoid TS error
   const isSimulating = !!simulatedData;
-
-  const NEON_CYAN = '#00f3ff';
-  const NEON_RED = '#ff2a2a';
-  const NEON_AMBER = '#ffaa00';
-  const NEON_ORANGE = '#f97316';
-
-  const getStatusColor = (status: 'normal' | 'warning' | 'critical') => {
-    switch (status) {
-      case 'critical':
-        return NEON_RED;
-      case 'warning':
-        return NEON_AMBER;
-      default:
-        return NEON_CYAN;
-    }
-  };
-
-  const heartColor = getStatusColor(displayData.heartRate.status);
-  const bodyColor = isRiskMode ? NEON_RED : NEON_CYAN;
-
-  const stepsPercentage = activityData
-    ? Math.min(100, (activityData.steps / activityData.goalSteps) * 100)
-    : 0;
-
-  const bodyPath =
-    'M100 20 C115 20 128 32 128 50 C128 65 120 75 110 80 L140 90 L165 130 L150 190 L130 160 L130 240 L145 380 H115 L110 260 H90 L85 380 H55 L70 240 L70 160 L50 190 L35 130 L60 90 L90 80 C80 75 72 65 72 50 C72 32 85 20 100 20Z';
-
-  const InteractiveZone = ({
-    part,
-    d,
-    cx,
-    cy,
-    r
-  }: {
-    part: BodyPart;
-    d?: string;
-    cx?: string;
-    cy?: string;
-    r?: string;
-  }) => (
-    <g
-      onClick={e => {
-        e.stopPropagation();
-        onBodyPartClick?.(part);
-      }}
-      className="cursor-pointer group"
-      style={{ pointerEvents: 'all' }}
-    >
-      {d ? (
-        <path d={d} fill="transparent" stroke="none" />
-      ) : (
-        <circle cx={cx} cy={cy} r={r} fill="transparent" stroke="none" />
-      )}
-      {d ? (
-        <path
-          d={d}
-          fill="white"
-          fillOpacity="0"
-          className="group-hover:fill-opacity-20 transition-all duration-300"
-        />
-      ) : (
-        <circle
-          cx={cx}
-          cy={cy}
-          r={r}
-          fill="white"
-          fillOpacity="0"
-          className="group-hover:fill-opacity-20 transition-all duration-300"
-        />
-      )}
-    </g>
-  );
-
-  const showNoiseStatic =
-    environmentalState && environmentalState.noiseLevelDb > 70;
-  const showRainEffect = environmentalState && environmentalState.isRaining;
-  const showHeatHaze =
-    environmentalState && environmentalState.outdoorTempC > 30;
-
+  
+  const STROKE_COLOR = "#94a3b8"; // Slate-400
+  
   return (
-    <div
-      className="relative w-full h-full flex justify-center items-center overflow-visible"
-      style={{ perspective: '800px' }}
-      onClick={() => onMetricSelect && onMetricSelect(null)}
-    >
-      <motion.div
-        className="relative w-full h-full flex justify-center items-center"
-        style={{ transformStyle: 'preserve-3d' }}
-        animate={{ rotateY: [-8, 8, -8] }}
-        transition={{ duration: 12, ease: 'easeInOut', repeat: Infinity }}
-      >
-        {/* TAGS */}
-        <HolographicTag
-          label="STRESS"
-          value={displayData.stressLevel.value}
-          unit="%"
-          xOffset={70}
-          y="15%"
-          delay={0.2}
-          icon={Brain}
-          color={
-            displayData.stressLevel.value > 50 ? NEON_RED : NEON_CYAN
-          }
-        />
+    <div className="relative w-full h-full flex justify-center items-center">
+      
+      {/* DATA LAYER - Full width container to spread tags out */}
+      <div className="absolute inset-0 w-full h-full px-4 pointer-events-none">
+        {/* Left Side Tags (Using 'x' / left positioning) */}
+        <DataTag label="Oxygen" value={displayData.oxygenLevel.value} unit="%" x="2%" y="20%" delay={0} icon={Wind} align="right" />
+        <DataTag label="Temp" value={displayData.temperature.value} unit="°C" x="4%" y="42%" delay={1} icon={Thermometer} align="right" />
+        <DataTag label="Steps" value={activityData?.steps ? Math.round(activityData.steps/1000) + 'k' : '6k'} unit="" x="6%" y="64%" delay={2} icon={Footprints} align="right" />
 
-        <HolographicTag
-          label="HR"
-          value={displayData.heartRate.value}
-          unit="BPM"
-          xOffset={75}
-          y="34%"
-          delay={0.4}
-          icon={Activity}
-          color={heartColor}
-        />
+        {/* Right Side Tags (Using 'right' positioning for perfect alignment) */}
+        <DataTag label="Stress" value={displayData.stressLevel.value} unit="" right="2%" y="15%" delay={0.5} icon={Brain} warning={displayData.stressLevel.value > 50} />
+        <DataTag label="Heart" value={displayData.heartRate.value} unit="bpm" right="4%" y="38%" delay={1.5} icon={Activity} />
+        <DataTag label="Water" value={displayData.hydration.value} unit="%" right="6%" y="58%" delay={2.5} icon={Droplets} warning={displayData.hydration.value < 50} />
+        <DataTag label="BP" value={displayData.bloodPressureSys.value} unit="" right="8%" y="78%" delay={3} icon={HeartPulse} />
+      </div>
 
-        <HolographicTag
-          label="SPO2"
-          value={displayData.oxygenLevel.value}
-          unit="%"
-          xOffset={-140}
-          y="34%"
-          delay={0.5}
-          icon={Wind}
-          align="right"
-          color={
-            displayData.oxygenLevel.value < 95
-              ? NEON_AMBER
-              : NEON_CYAN
-          }
-        />
-
-        <HolographicTag
-          label="TEMP"
-          value={displayData.temperature.value}
-          unit="°C"
-          xOffset={-145}
-          y="54%"
-          delay={2}
-          icon={Thermometer}
-          align="right"
-          color={
-            displayData.temperature.value > 37.5
-              ? NEON_RED
-              : NEON_AMBER
-          }
-        />
-
-        <HolographicTag
-          label="H2O"
-          value={displayData.hydration.value}
-          unit="%"
-          xOffset={60}
-          y="57%"
-          delay={0.6}
-          icon={Droplets}
-          color={
-            displayData.hydration.value < 50
-              ? NEON_AMBER
-              : NEON_CYAN
-          }
-        />
-
-        <HolographicTag
-          label="BP"
-          value={`${displayData.bloodPressureSys.value}/${displayData.bloodPressureDia.value}`}
-          unit=""
-          xOffset={75}
-          y="77%"
-          delay={2.5}
-          icon={HeartPulse}
-          color={
-            displayData.bloodPressureSys.value > 130
-              ? NEON_RED
-              : '#f43f5e'
-          }
-        />
-
-        {/* ENVIRONMENT EFFECTS */}
-        {showNoiseStatic && (
-          <motion.div
-            className="absolute inset-0 z-20 pointer-events-none mix-blend-color-dodge"
-            animate={{ opacity: [0.1, 0.3, 0.1] }}
-            transition={{ duration: 0.2, repeat: Infinity }}
-          >
-            <div className="absolute inset-0 bg-red-400 opacity-5" />
-          </motion.div>
-        )}
-
-        {showRainEffect && (
-          <motion.div
-            className="absolute inset-0 z-20 pointer-events-none"
-            animate={{ y: [0, 40, 0] }}
-            transition={{ duration: 0.5, repeat: Infinity, ease: 'linear' }}
-          >
-            <svg width="100%" height="100%">
-              <circle
-                cx="50%"
-                cy="50%"
-                r="180"
-                fill="none"
-                stroke="#3b82f6"
-                strokeWidth="2"
-                strokeOpacity="0.2"
-              />
-            </svg>
-          </motion.div>
-        )}
-
-        {showHeatHaze && (
-          <motion.div
-            className="absolute inset-x-0 bottom-0 h-1/3 z-20 pointer-events-none"
-            animate={{
-              opacity: [0.4, 0.6, 0.4],
-              scaleY: [1, 1.05, 1],
-              y: [0, -5, 0]
-            }}
-            transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
-          >
-            <div className="absolute inset-0 bg-gradient-to-t from-orange-600/30 to-transparent blur-xl" />
-            <div className="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-red-500/20 to-transparent blur-lg" />
-          </motion.div>
-        )}
-
-        {/* BACKGROUND + FITNESS RING */}
-        <div
-          className="absolute inset-0 pointer-events-none z-0 flex items-center justify-center"
-          style={{ transform: 'translateZ(-40px)' }}
-        >
-          {activityData && (
-            <div className="absolute w-[250px] h-[250px] flex items-center justify-center">
-              <svg
-                className="w-full h-full"
-                style={{ transform: 'rotate(-90deg)' }}
-              >
-                <circle
-                  cx="125"
-                  cy="125"
-                  r="115"
-                  stroke={bodyColor}
-                  strokeWidth="1"
-                  strokeOpacity="0.1"
-                  fill="none"
-                />
-                <motion.circle
-                  cx="125"
-                  cy="125"
-                  r="115"
-                  stroke={NEON_ORANGE}
-                  strokeWidth="3"
-                  fill="none"
-                  strokeLinecap="round"
-                  initial={{ strokeDasharray: '0 1000' }}
-                  animate={{
-                    strokeDasharray: `${
-                      (stepsPercentage / 100) * (2 * Math.PI * 115)
-                    } 1000`
-                  }}
-                  transition={{ duration: 2, ease: 'easeOut' }}
-                  style={{
-                    filter: `drop-shadow(0 0 8px ${NEON_ORANGE})`
-                  }}
-                />
-              </svg>
-            </div>
-          )}
-
-          <motion.div
-            animate={{
-              top: ['10%', '90%', '10%'],
-              opacity: [0, 1, 0]
-            }}
-            transition={{ duration: 5, ease: 'linear', repeat: Infinity }}
-            className="absolute w-[80%] h-px bg-cyan-400/40 shadow-[0_0_20px_rgba(0,243,255,0.8)]"
-          />
-        </div>
-
-        {/* FITNESS LABEL */}
-        {activityData && (
-          <motion.div
-            className="absolute -bottom-1 left-1/2 -translate-x-1/2 z-40 pointer-events-none"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 1 }}
-          >
-            <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-900/90 border border-orange-500/40 backdrop-blur-xl shadow-lg">
-              <Footprints size={8} className="text-orange-400" />
-              <span className="text-[10px] font-bold text-orange-100 tracking-wider font-mono">
-                FITNESS: {Math.round(stepsPercentage)}%
-              </span>
-            </div>
-          </motion.div>
-        )}
-
-        {/* AVATAR */}
-        <svg
-          viewBox="0 0 200 450"
-          className={`h-[260px] w-auto transition-all duration-500 z-10 ${
-            isSimulating
-              ? 'drop-shadow-[0_0_15px_rgba(0,243,255,0.6)]'
-              : ''
-          }`}
-          fill="none"
-          xmlns="http://www.w3.org/2000/svg"
-          style={{ overflow: 'visible' }}
-        >
+      {/* AVATAR GRAPHIC - Reduced width to preventing overlapping */}
+      <div className="relative z-10 w-[200px] h-[360px] translate-y-2">
+        <svg viewBox="0 0 200 400" className="w-full h-full" style={{ filter: 'drop-shadow(0px 15px 30px rgba(99, 102, 241, 0.15))' }}>
+          
           <defs>
-            <filter
-              id="glow"
-              x="-40%"
-              y="-40%"
-              width="180%"
-              height="180%"
-            >
-              <feGaussianBlur stdDeviation="4" result="blur" />
-              <feComposite
-                in="SourceGraphic"
-                in2="blur"
-                operator="over"
-              />
-            </filter>
-            <pattern
-              id="hex-grid"
-              width="16"
-              height="14"
-              patternUnits="userSpaceOnUse"
-              patternTransform="scale(0.8)"
-            >
-              <path
-                d="M8 0 L16 4 L16 12 L8 16 L0 12 L0 4 Z"
-                fill="none"
-                stroke={bodyColor}
-                strokeWidth="0.5"
-                strokeOpacity="0.3"
-              />
-            </pattern>
-            <pattern
-              id="hex-grid-back"
-              width="16"
-              height="14"
-              patternUnits="userSpaceOnUse"
-              patternTransform="scale(0.8)"
-            >
-              <path
-                d="M8 0 L16 4 L16 12 L8 16 L0 12 L0 4 Z"
-                fill="none"
-                stroke={bodyColor}
-                strokeWidth="0.5"
-                strokeOpacity="0.1"
-              />
-            </pattern>
+            <linearGradient id="bodyGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+              <stop offset="0%" stopColor="#ffffff" />
+              <stop offset="100%" stopColor="#f1f5f9" />
+            </linearGradient>
           </defs>
 
-          <motion.path
-            d={bodyPath}
-            fill="url(#hex-grid-back)"
-            stroke={bodyColor}
-            strokeWidth="0.5"
-            strokeOpacity="0.2"
-            transform="scale(0.96) translate(4, 0)"
-            style={{ filter: 'blur(1px)' }}
-          />
-
-          <motion.circle
-            cx="100"
-            cy="45"
-            r="12"
-            fill={
-              displayData.stressLevel.value > 50 ? NEON_RED : NEON_CYAN
-            }
-            fillOpacity={0.2}
-            filter="url(#glow)"
-            animate={{ opacity: [0.3, 0.7, 0.3] }}
-            transition={{ duration: 2, repeat: Infinity }}
-          />
-
-          <motion.path
-            d="M100 115 L108 122 L105 132 H95 L92 122 Z"
-            fill={heartColor}
-            fillOpacity={0.9}
-            stroke="white"
-            strokeWidth="1"
-            animate={{
-              scale: [1, 1.15, 1],
-              filter: [
-                `drop-shadow(0 0 5px ${heartColor})`,
-                `drop-shadow(0 0 15px ${heartColor})`,
-                `drop-shadow(0 0 5px ${heartColor})`
-              ]
-            }}
-            transition={{
-              duration: 60 / displayData.heartRate.value,
-              repeat: Infinity,
-              ease: 'circOut'
-            }}
-          />
-
-          {data.activeSymptoms?.some(s => s.bodyPart === 'head') && (
-            <motion.circle
-              cx="100"
-              cy="45"
-              r="25"
-              fill={NEON_RED}
-              fillOpacity={0.2}
-              filter="url(#glow)"
-              animate={{ opacity: [0.2, 0.5, 0.2] }}
-              transition={{ duration: 2, repeat: Infinity }}
-            />
-          )}
-
-          {data.activeSymptoms?.some(s => s.bodyPart === 'stomach') && (
-            <motion.circle
-              cx="100"
-              cy="180"
-              r="30"
-              fill={NEON_AMBER}
-              fillOpacity={0.2}
-              filter="url(#glow)"
-              animate={{ opacity: [0.2, 0.5, 0.2] }}
-              transition={{ duration: 3, repeat: Infinity }}
-            />
-          )}
-
-          <mask id="torso-mask">
-            <path d="M90 160 L110 160 L105 240 L95 240 Z" fill="white" />
-          </mask>
-
-          <motion.rect
-            x={85}
-            y={240 - displayData.hydration.value * 0.8}
-            width={30}
-            height={100}
-            fill={
-              displayData.hydration.value > 50 ? '#3b82f6' : NEON_AMBER
-            }
-            mask="url(#torso-mask)"
-            opacity={0.4}
-            filter="url(#glow)"
-            animate={{
-              height: [
-                displayData.hydration.value * 0.8,
-                displayData.hydration.value * 0.8 + 5,
-                displayData.hydration.value * 0.8
-              ]
-            }}
-            transition={{ duration: 4, repeat: Infinity }}
-          />
-
-          <motion.path
-            d={bodyPath}
-            fill="url(#hex-grid)"
-            stroke={bodyColor}
+          {/* Body Silhouette */}
+          <path 
+            d="M100 30 C115 30 125 40 125 55 C125 68 118 75 110 78 L140 85 L160 130 L145 180 L125 150 L125 220 L140 360 H115 L110 240 H90 L85 360 H60 L75 220 L75 150 L55 180 L40 130 L60 85 L90 78 C82 75 75 68 75 55 C75 40 85 30 100 30Z"
+            fill="url(#bodyGradient)"
+            stroke={STROKE_COLOR}
             strokeWidth="1.5"
             strokeLinecap="round"
             strokeLinejoin="round"
-            style={{ filter: `drop-shadow(0 0 3px ${bodyColor})` }}
           />
 
-          {onBodyPartClick && (
-            <g style={{ pointerEvents: 'all' }}>
-              <InteractiveZone part="head" cx="100" cy="45" r="35" />
-              <InteractiveZone
-                part="chest"
-                d="M70 80 H130 V140 H70 Z"
-              />
-              <InteractiveZone
-                part="stomach"
-                cx="100"
-                cy="180"
-                r="35"
-              />
-            </g>
-          )}
+          {/* Internal Structure */}
+          <path d="M100 30 V78 M100 78 L140 85 M100 78 L60 85 M100 78 V150" stroke={STROKE_COLOR} strokeWidth="1" strokeOpacity="0.3" fill="none" />
+          
+          {/* Active Heartbeat */}
+          <circle cx="100" cy="100" r="4" fill="#f43f5e" className="animate-pulse">
+             <animate attributeName="r" values="3;5;3" dur="1s" repeatCount="indefinite" />
+             <animate attributeName="opacity" values="0.8;0.4;0.8" dur="1s" repeatCount="indefinite" />
+          </circle>
+
+          {/* Hydration Fill Effect */}
+          <mask id="body-fill-mask">
+             <path d="M100 30 C115 30 125 40 125 55 C125 68 118 75 110 78 L140 85 L160 130 L145 180 L125 150 L125 220 L140 360 H115 L110 240 H90 L85 360 H60 L75 220 L75 150 L55 180 L40 130 L60 85 L90 78 C82 75 75 68 75 55 C75 40 85 30 100 30Z" fill="white" />
+          </mask>
+          <rect 
+            x="0" 
+            y={400 - (displayData.hydration.value * 3.5)} 
+            width="200" 
+            height="400" 
+            fill="#3b82f6" 
+            fillOpacity="0.1" 
+            mask="url(#body-fill-mask)" 
+            className="transition-all duration-1000 ease-in-out"
+          />
+
         </svg>
-      </motion.div>
+
+        {/* Click Zones */}
+        <svg viewBox="0 0 200 400" className="absolute inset-0 w-full h-full pointer-events-auto">
+           <circle cx="100" cy="50" r="25" fill="transparent" className="cursor-pointer hover:fill-indigo-500/10" onClick={(e) => { e.stopPropagation(); onBodyPartClick?.('head'); }} />
+           <circle cx="100" cy="100" r="30" fill="transparent" className="cursor-pointer hover:fill-indigo-500/10" onClick={(e) => { e.stopPropagation(); onBodyPartClick?.('chest'); }} />
+           <circle cx="100" cy="170" r="30" fill="transparent" className="cursor-pointer hover:fill-indigo-500/10" onClick={(e) => { e.stopPropagation(); onBodyPartClick?.('stomach'); }} />
+        </svg>
+      </div>
 
       <AnimatePresence>
         {isSimulating && (
-          <motion.div
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
+          <motion.div 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0 }}
-            className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-30 pointer-events-none"
-            style={{ transform: 'translateZ(60px)' }}
+            className="absolute bottom-0 bg-indigo-600 text-white px-4 py-2 rounded-full text-xs font-bold shadow-xl shadow-indigo-500/30 z-40"
           >
-            <div className="relative flex flex-col items-center">
-              <div
-                className={`w-32 h-32 absolute rounded-full blur-[50px] opacity-40 ${
-                  isRiskMode ? 'bg-red-500' : 'bg-cyan-500'
-                }`}
-              />
-              <div
-                className={`px-4 py-2 border ${
-                  isRiskMode
-                    ? 'border-red-500/80 text-red-100 bg-red-950/90'
-                    : 'border-cyan-500/80 text-cyan-100 bg-cyan-950/90'
-                } rounded-lg backdrop-blur-md shadow-[0_0_30px_rgba(0,0,0,0.5)] flex items-center gap-3`}
-              >
-                <div
-                  className={`w-2 h-2 rounded-full ${
-                    isRiskMode ? 'bg-red-500' : 'bg-cyan-400'
-                  } animate-ping`}
-                />
-                <div className="flex flex-col">
-                  <span className="text-[9px] opacity-70 tracking-widest font-mono">
-                    SIMULATION
-                  </span>
-                  <span className="text-xs font-bold font-mono tracking-widest uppercase glow-text">
-                    {isRiskMode ? 'CRITICAL' : 'OPTIMAL'}
-                  </span>
-                </div>
-              </div>
-            </div>
+            SIMULATION MODE
           </motion.div>
         )}
       </AnimatePresence>

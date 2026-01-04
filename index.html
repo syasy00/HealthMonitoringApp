@@ -4,15 +4,14 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
     <title>Aura Health Companion</title>
-    <!-- Keep Tailwind CDN for simplicity -->
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
       @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap');
       
       body {
         font-family: 'Inter', sans-serif;
-        background-color: #0f172a; /* Slate 900 */
-        color: #f8fafc;
+        background-color: #f1f5f9; /* Changed to Light Slate */
+        color: #0f172a; /* Changed to Dark Text */
         overscroll-behavior: none;
       }
       
@@ -23,10 +22,10 @@
       }
       
       .glass-panel {
-        background: rgba(30, 41, 59, 0.7);
+        background: rgba(255, 255, 255, 0.7); /* Lighter Glass */
         backdrop-filter: blur(12px);
         -webkit-backdrop-filter: blur(12px);
-        border: 1px solid rgba(255, 255, 255, 0.08);
+        border: 1px solid rgba(0, 0, 0, 0.05);
       }
 
       .animate-pulse-slow {
@@ -61,7 +60,6 @@
 </head>
   <body>
     <div id="root"></div>
-    <!-- This script tag is CRITICAL for Vercel/Vite to know where your app starts -->
     <script type="module" src="/index.tsx"></script>
   </body>
 </html>
