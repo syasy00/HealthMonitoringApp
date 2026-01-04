@@ -13,7 +13,7 @@ import NutriScanner from './components/NutriScanner';
 import AppointmentWidget from './components/AppointmentWidget';
 import MedicationManager from './components/MedicationManager';
 import Assistant from './components/Assistant';
-import WellnessPage from './components/WellnessPage'; // <--- ADDED IMPORT
+import WellnessPage from './components/WellnessPage';
 import {
   Zap,
   ScanBarcode,
@@ -22,14 +22,13 @@ import {
   ShieldAlert,
   Info,
   Sparkles,
-  User,
-  MessageSquare
+  User
 } from 'lucide-react';
 import SymptomSelector from './components/SymptomSelector';
 import AiDoctorFab from './components/AiDoctorFab';
 import EmergencyOverlay from './components/EmergencyOverlay';
 
-type ScannedFood = { name: string; calories: number; [key: string]: any; };
+type ScannedFood = { name: string; calories: number; timestamp: Date; [key: string]: any; };
 type LogActionType = 'water' | 'hear' | 'mood' | 'rest' | 'scan' | 'meds';
 
 // --- INITIAL DATA ---
@@ -46,18 +45,25 @@ const initialHealthData: HealthData = {
 };
 
 const initialActivity: ActivityData = { steps: 6432, goalSteps: 10000, activeMinutes: 45, caloriesBurned: 1240, standHours: 8 };
+
 const initialMeds: Medication[] = [
   { id: '1', name: 'Vitamin D3', dosage: '1000 IU', time: '08:00 AM', taken: true, type: 'pill' },
   { id: '2', name: 'Omega-3', dosage: '500 mg', time: '12:00 PM', taken: false, type: 'pill' },
-  { id: '3', name: 'Magnesium', dosage: '200 mg', time: '09:00 PM', taken: false, type: 'pill' }
 ];
-const mockAppointments: Appointment[] = [{ id: '1', doctorName: 'Dr. Emily Wei', specialty: 'Cardiology', date: new Date(Date.now() + 86400000 * 2), type: 'Video' }];
+
+const mockAppointments: Appointment[] = [
+    { id: '1', doctorName: 'Dr. Emily Wei', specialty: 'Cardiology', date: new Date(Date.now() + 86400000 * 2), type: 'Video' }
+];
+
 const initialEnvironment: EnvironmentalState = { outdoorTempC: 28, airQualityIndex: 'Good', noiseLevelDb: 45, isRaining: false };
 
 function App() {
   const [healthData, setHealthData] = useState<HealthData>(initialHealthData);
   const [activity] = useState<ActivityData>(initialActivity);
   const [meds, setMeds] = useState<Medication[]>(initialMeds);
+  const [appointments, setAppointments] = useState<Appointment[]>(mockAppointments);
+  const [foodHistory, setFoodHistory] = useState<ScannedFood[]>([]); // New History State
+  
   const [aiInsight, setAiInsight] = useState('Hydration is low. Drink water to boost energy.');
   const [visualTrigger, setVisualTrigger] = useState<string | null>(null);
   const [environment, setEnvironment] = useState<EnvironmentalState>(initialEnvironment);
@@ -112,6 +118,34 @@ function App() {
     }
   };
 
+  // --- NEW HANDLERS ---
+  const handleAddMed = (newMed: Omit<Medication, 'id' | 'taken'>) => {
+      const med: Medication = {
+          ...newMed,
+          id: Math.random().toString(36).substr(2, 9),
+          taken: false
+      };
+      setMeds(prev => [...prev, med]);
+      setAiInsight(`Added ${med.name} to your routine.`);
+  };
+
+  const handleAddAppointment = (appt: Omit<Appointment, 'id'>) => {
+      const newAppt: Appointment = {
+          ...appt,
+          id: Math.random().toString(36).substr(2, 9)
+      };
+      // Sort by date
+      setAppointments(prev => [...prev, newAppt].sort((a, b) => a.date.getTime() - b.date.getTime()));
+      setAiInsight("Appointment scheduled successfully.");
+  };
+
+  const handleFoodLog = (food: {name: string, calories: number}) => {
+      const newFood: ScannedFood = { ...food, timestamp: new Date() };
+      setFoodHistory(prev => [newFood, ...prev]);
+      setShowScanner(false);
+      setAiInsight(`Logged ${food.name}. +${food.calories}kcal.`);
+  };
+
   const handleSymptomLog = (symptomId: string, symptomName: string) => {
     setHealthData(prev => ({ 
         ...prev, 
@@ -141,12 +175,13 @@ function App() {
           </button>
         </header>
 
-        {/* MAIN CONTENT AREA */}
+        {/* MAIN CONTENT */}
         <main className="flex-1 overflow-y-auto no-scrollbar p-4 relative pb-24">
           
           {activeTab === 'monitor' ? (
             <div className="space-y-6 animate-in slide-in-from-left duration-300">
-              {/* --- MONITOR TAB --- */}
+              
+              {/* HERO AVATAR */}
               <div className="relative h-[440px] w-full bg-gradient-to-b from-indigo-50/60 via-slate-50/50 to-white rounded-[2.5rem] border border-slate-100 shadow-sm overflow-hidden flex flex-col items-center">
                 <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-200/20 rounded-full blur-[80px] pointer-events-none" />
                 <div className="absolute bottom-0 left-0 w-64 h-64 bg-blue-200/20 rounded-full blur-[80px] pointer-events-none" />
@@ -178,25 +213,35 @@ function App() {
                 </div>
               </div>
 
+              {/* CONTROLS */}
               <div className="-mt-2">
                 <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3 px-2">Quick Log</h3>
                 <BioControls onLogAction={handleLogAction} />
               </div>
 
+              {/* WIDGETS */}
               <div className="space-y-4">
-                <MedicationManager medications={meds} onTake={(id) => handleLogAction('meds', id)} onAddMed={() => {}} onShowDetails={() => {}} />
+                <MedicationManager 
+                    medications={meds} 
+                    onTake={(id) => handleLogAction('meds', id)} 
+                    onAddMed={handleAddMed} 
+                    onShowDetails={() => {}} 
+                />
                 
+                {/* Scanner Button (Shows last scanned item preview) */}
                 <button
                   onClick={() => setShowScanner(true)}
-                  className="w-full h-20 bg-white border border-slate-100 rounded-[2rem] flex items-center justify-between px-6 hover:border-indigo-200 hover:shadow-md transition-all group"
+                  className="w-full bg-white border border-slate-100 rounded-[2rem] p-5 flex items-center justify-between hover:border-indigo-200 hover:shadow-md transition-all group"
                 >
                   <div className="flex items-center gap-4">
                     <div className="w-12 h-12 rounded-2xl bg-orange-50 text-orange-500 flex items-center justify-center group-hover:bg-orange-500 group-hover:text-white transition-colors">
                       <ScanBarcode size={22} />
                     </div>
                     <div className="text-left">
-                      <span className="block text-sm font-bold text-slate-900">Scan Meal</span>
-                      <span className="block text-[10px] font-medium text-slate-400">Log calories & nutrients</span>
+                      <span className="block text-sm font-bold text-slate-900">Nutrition AI</span>
+                      <span className="block text-[10px] font-medium text-slate-400">
+                          {foodHistory.length > 0 ? `Last: ${foodHistory[0].name}` : 'Scan your first meal'}
+                      </span>
                     </div>
                   </div>
                   <div className="w-8 h-8 rounded-full bg-slate-50 flex items-center justify-center text-slate-300 group-hover:text-orange-500 transition-colors">
@@ -204,14 +249,15 @@ function App() {
                   </div>
                 </button>
 
-                <AppointmentWidget appointments={mockAppointments} />
+                <AppointmentWidget 
+                    appointments={appointments} 
+                    onAddAppointment={handleAddAppointment}
+                />
               </div>
             </div>
           ) : activeTab === 'wellness' ? (
-            // --- WELLNESS TAB ---
             <WellnessPage healthData={healthData} activityData={activity} />
           ) : (
-            // --- PROFILE TAB ---
             <div className="flex flex-col items-center justify-center h-full text-slate-400 space-y-4 pt-20">
                <div className="w-20 h-20 rounded-full bg-slate-100 flex items-center justify-center">
                  <User size={32} />
@@ -221,17 +267,19 @@ function App() {
           )}
         </main>
 
-        {/* BOTTOM NAV */}
         <nav className="h-[80px] px-8 bg-white/90 backdrop-blur-xl border-t border-slate-100 flex items-center justify-between absolute bottom-0 w-full z-40 pb-2">
           <NavButton active={activeTab === 'monitor'} onClick={() => setActiveTab('monitor')} icon={Activity} label="Monitor" />
           <NavButton active={activeTab === 'wellness'} onClick={() => setActiveTab('wellness')} icon={Sparkles} label="Wellness" />
           <NavButton active={activeTab === 'profile'} onClick={() => setActiveTab('profile')} icon={User} label="Profile" />
         </nav>
 
-        {/* --- OVERLAYS --- */}
         {showScanner && (
-          <div className="absolute inset-0 z-[60] bg-slate-900">
-             <NutriScanner onClose={() => setShowScanner(false)} onLogFood={(f) => { setShowScanner(false); setAiInsight(`Logged ${f.name}.`); }} />
+          <div className="absolute inset-0 z-[60] bg-white">
+             <NutriScanner 
+                onClose={() => setShowScanner(false)} 
+                onLogFood={handleFoodLog} 
+                history={foodHistory}
+            />
           </div>
         )}
 
@@ -244,11 +292,7 @@ function App() {
         <EmergencyOverlay isOpen={isSOSActive} onClose={() => setSOSActive(false)} />
         
         {!showScanner && !showAssistant && (
-          <AiDoctorFab 
-            onClick={() => setShowAssistant(true)} 
-            isOpen={false} 
-            suggestion={doctorSuggestion} 
-          />
+          <AiDoctorFab onClick={() => setShowAssistant(true)} isOpen={false} suggestion={doctorSuggestion} />
         )}
       </div>
     </div>
